@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -35,7 +36,7 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(
         run_hourly_sync,
         "date",
-        run_date=datetime.now() + timedelta(minutes=2),
+        run_date=datetime.now(ZoneInfo("Europe/Istanbul")) + timedelta(minutes=2),
         id="startup_sync",
     )
     scheduler.start()
