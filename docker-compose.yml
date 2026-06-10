@@ -6,9 +6,6 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
-    env_file:
-      - path: ./backend/.env
-        required: false
     environment:
       # Set these in Hostinger's Docker manager environment settings
       # (or create backend/.env on the server)
