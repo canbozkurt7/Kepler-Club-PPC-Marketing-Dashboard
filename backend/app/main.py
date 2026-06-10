@@ -1,9 +1,12 @@
 import logging
+from datetime import datetime, timedelta
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from apscheduler.schedulers.background import BackgroundScheduler
 from .database import init_db
 from .api.v1 import router as api_v1_router
+from .jobs.fetch_all_platforms import run_hourly_sync
 
 # Configure logging
 logging.basicConfig(
@@ -11,6 +14,8 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+scheduler = BackgroundScheduler(timezone="Europe/Istanbul")
 
 
 @asynccontextmanager
@@ -24,10 +29,23 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Failed to initialize database: {str(e)}")
 
+    # Hourly platform sync at :00, plus one run 2 minutes after boot so a
+    # fresh deploy doesn't wait up to an hour for its first data.
+    scheduler.add_job(run_hourly_sync, "cron", minute=0, id="hourly_sync")
+    scheduler.add_job(
+        run_hourly_sync,
+        "date",
+        run_date=datetime.now() + timedelta(minutes=2),
+        id="startup_sync",
+    )
+    scheduler.start()
+    logger.info("Scheduler started: hourly sync at :00 (Europe/Istanbul) + startup sync in 2 min")
+
     yield
 
     # Shutdown
     logger.info("Shutting down Kepler PPC Dashboard...")
+    scheduler.shutdown(wait=False)
 
 
 # Create FastAPI app
