@@ -1,4 +1,4 @@
-import {
+﻿import {
   Area,
   AreaChart,
   CartesianGrid,
@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import type { TrendPoint } from "../data/types";
 
-const tickStyle = { fontSize: 11, fill: "#64748d", fontWeight: 300 };
+const tickStyle = { fontSize: 11, fill: "#837ca2", fontWeight: 300 };
 
 function shortDate(d: string) {
   const date = new Date(d);
@@ -24,17 +24,17 @@ export function SpendRoasChart({ data }: { data: TrendPoint[] }) {
       <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="spendFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#533afd" stopOpacity={0.18} />
-            <stop offset="100%" stopColor="#533afd" stopOpacity={0.02} />
+            <stop offset="0%" stopColor="#4d5fd9" stopOpacity={0.18} />
+            <stop offset="100%" stopColor="#4d5fd9" stopOpacity={0.02} />
           </linearGradient>
         </defs>
-        <CartesianGrid stroke="#e3e8ee" strokeDasharray="0" vertical={false} />
+        <CartesianGrid stroke="#e4e4e4" strokeDasharray="0" vertical={false} />
         <XAxis
           dataKey="date"
           tickFormatter={shortDate}
           tick={tickStyle}
           tickLine={false}
-          axisLine={{ stroke: "#e3e8ee" }}
+          axisLine={{ stroke: "#e4e4e4" }}
           minTickGap={36}
         />
         <YAxis
@@ -57,7 +57,7 @@ export function SpendRoasChart({ data }: { data: TrendPoint[] }) {
         <Tooltip
           contentStyle={{
             borderRadius: 8,
-            border: "1px solid #e3e8ee",
+            border: "1px solid #e4e4e4",
             boxShadow: "rgba(0,55,112,0.08) 0 8px 24px",
             fontSize: 12,
             fontFamily: "Inter, sans-serif",
@@ -74,7 +74,7 @@ export function SpendRoasChart({ data }: { data: TrendPoint[] }) {
           type="monotone"
           dataKey="spend"
           name="Spend"
-          stroke="#533afd"
+          stroke="#4d5fd9"
           strokeWidth={1.6}
           fill="url(#spendFill)"
         />
@@ -83,7 +83,7 @@ export function SpendRoasChart({ data }: { data: TrendPoint[] }) {
           type="monotone"
           dataKey="roas"
           name="ROAS"
-          stroke="#ea2261"
+          stroke="#221c4e"
           strokeWidth={1.6}
           dot={false}
         />
@@ -117,13 +117,13 @@ export function MiniAreaChart({
             <stop offset="100%" stopColor={color} stopOpacity={0.02} />
           </linearGradient>
         </defs>
-        <CartesianGrid stroke="#e3e8ee" vertical={false} />
+        <CartesianGrid stroke="#e4e4e4" vertical={false} />
         <XAxis
           dataKey="date"
           tickFormatter={shortDate}
           tick={tickStyle}
           tickLine={false}
-          axisLine={{ stroke: "#e3e8ee" }}
+          axisLine={{ stroke: "#e4e4e4" }}
           minTickGap={36}
         />
         <YAxis
@@ -138,7 +138,7 @@ export function MiniAreaChart({
         <Tooltip
           contentStyle={{
             borderRadius: 8,
-            border: "1px solid #e3e8ee",
+            border: "1px solid #e4e4e4",
             boxShadow: "rgba(0,55,112,0.08) 0 8px 24px",
             fontSize: 12,
             fontFamily: "Inter, sans-serif",

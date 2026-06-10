@@ -20,7 +20,7 @@ export function Ga4Page({ data }: { data: DashboardData }) {
       )}
 
       <div className="kpi-grid">
-        <KpiCard hero label="Sessions (30d)" value={num(g.sessions)} />
+        <KpiCard hero label="Sessions" value={num(g.sessions)} />
         <KpiCard label="Engaged Sessions" value={num(g.engagedSessions)} />
         <KpiCard label="Engagement Rate" value={`${g.engagementRate.toFixed(1)}%`} />
         <KpiCard
@@ -31,7 +31,7 @@ export function Ga4Page({ data }: { data: DashboardData }) {
       </div>
 
       <div className="section">
-        <Card title="Sessions by channel" sub="Default channel grouping · last 30 days">
+        <Card title="Sessions by channel" sub="Default channel grouping · selected period">
           <table className="data">
             <thead>
               <tr>

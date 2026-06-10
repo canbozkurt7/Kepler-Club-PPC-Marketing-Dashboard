@@ -47,18 +47,18 @@ export function PlatformPage({
 
       <div className="kpi-grid">
         <KpiCard hero label={`${meta.label} ROAS`} value={`${k.roas.toFixed(2)}x`} />
-        <KpiCard label="Spend (30d)" value={eur(k.spend)} />
-        <KpiCard label="Revenue (30d)" value={eur(k.revenue)} />
+        <KpiCard label="Spend" value={eur(k.spend)} />
+        <KpiCard label="Revenue" value={eur(k.revenue)} />
         <KpiCard label="Conversions" value={num(k.conversions)} />
         <KpiCard label="CPA" value={eur(k.cpa)} />
         <KpiCard label="CTR" value={`${k.ctr.toFixed(1)}%`} />
       </div>
 
       <div className="section section-grid grid-2-1">
-        <Card title="Spend vs ROAS" sub={`${meta.label} · last 30 days · EUR`}>
+        <Card title="Spend vs ROAS" sub={`${meta.label} · selected period · EUR`}>
           <SpendRoasChart data={trend} />
         </Card>
-        <Card title="Conversions" sub="Daily · last 30 days">
+        <Card title="Conversions" sub="Daily · selected period">
           <MiniAreaChart data={trend} dataKey="conversions" color={meta.color} height={280} />
         </Card>
       </div>

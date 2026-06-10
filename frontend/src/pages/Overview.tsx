@@ -38,12 +38,12 @@ export function Overview({
           delta={{ value: "4.2%", direction: "up", goodWhen: "up" }}
         />
         <KpiCard
-          label="Total Spend (30d)"
+          label="Total Spend"
           value={eur(k.spend)}
           delta={{ value: "2.1%", direction: "up", goodWhen: "down" }}
         />
         <KpiCard
-          label="Revenue (30d)"
+          label="Revenue"
           value={eur(k.revenue)}
           delta={{ value: "6.8%", direction: "up", goodWhen: "up" }}
         />
@@ -62,7 +62,7 @@ export function Overview({
       <div className="section section-grid grid-2-1">
         <Card
           title="Spend vs ROAS"
-          sub="All platforms blended · last 30 days · EUR"
+          sub="All platforms blended · selected period · EUR"
         >
           <SpendRoasChart data={data.trend} />
         </Card>
@@ -96,7 +96,7 @@ export function Overview({
       </div>
 
       <div className="section">
-        <Card title="Platform breakdown" sub="Last 30 days · EUR">
+        <Card title="Platform breakdown" sub="selected period · EUR">
           <table className="data">
             <thead>
               <tr>

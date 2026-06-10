@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { DashboardData, LocationCode } from "./data/types";
 import { fetchDashboard } from "./data/api";
+import { deriveForRange, type DateRange } from "./data/derive";
+import { DateRangePicker } from "./components/DateRangePicker";
 import { Overview } from "./pages/Overview";
 import { PlatformPage } from "./pages/PlatformPage";
 import { Ga4Page } from "./pages/Ga4Page";
@@ -35,12 +37,26 @@ export default function App() {
   const [tab, setTab] = useState<TabKey>("overview");
   const [location, setLocation] = useState<LocationCode>("ALL");
   const [data, setData] = useState<DashboardData | null>(null);
+  const [range, setRange] = useState<DateRange | null>(null);
 
   useEffect(() => {
-    fetchDashboard().then(setData);
+    fetchDashboard().then((d) => {
+      setData(d);
+      if (d.trend.length > 0) {
+        setRange({
+          from: d.trend[0].date,
+          to: d.trend[d.trend.length - 1].date,
+        });
+      }
+    });
   }, []);
 
-  if (!data) {
+  const derived = useMemo(
+    () => (data && range ? deriveForRange(data, range) : data),
+    [data, range]
+  );
+
+  if (!data || !derived || !range) {
     return (
       <div className="shell">
         <div className="mesh" />
@@ -53,6 +69,8 @@ export default function App() {
 
   const { title, sub } = PAGE_TITLES[tab];
   const showLocationFilter = tab !== "ga4" && tab !== "clarity";
+  const minDate = data.trend[0].date;
+  const maxDate = data.trend[data.trend.length - 1].date;
 
   return (
     <div className="shell">
@@ -93,33 +111,41 @@ export default function App() {
             <h1 className="page-title">{title}</h1>
             <div className="page-sub">{sub}</div>
           </div>
-          {showLocationFilter && (
-            <div className="filters">
-              {LOCATIONS.map((loc) => (
-                <button
-                  key={loc}
-                  className={`pill ${location === loc ? "active" : ""}`}
-                  onClick={() => setLocation(loc)}
-                >
-                  {loc === "ALL" ? "All locations" : loc}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="filters-col">
+            <DateRangePicker
+              value={range}
+              min={minDate}
+              max={maxDate}
+              onChange={setRange}
+            />
+            {showLocationFilter && (
+              <div className="filters">
+                {LOCATIONS.map((loc) => (
+                  <button
+                    key={loc}
+                    className={`pill ${location === loc ? "active" : ""}`}
+                    onClick={() => setLocation(loc)}
+                  >
+                    {loc === "ALL" ? "All locations" : loc}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {tab === "overview" && <Overview data={data} location={location} />}
+        {tab === "overview" && <Overview data={derived} location={location} />}
         {tab === "google" && (
-          <PlatformPage platform="google" data={data} location={location} />
+          <PlatformPage platform="google" data={derived} location={location} />
         )}
         {tab === "meta" && (
-          <PlatformPage platform="meta" data={data} location={location} />
+          <PlatformPage platform="meta" data={derived} location={location} />
         )}
         {tab === "yandex" && (
-          <PlatformPage platform="yandex" data={data} location={location} />
+          <PlatformPage platform="yandex" data={derived} location={location} />
         )}
-        {tab === "ga4" && <Ga4Page data={data} />}
-        {tab === "clarity" && <ClarityPage data={data} />}
+        {tab === "ga4" && <Ga4Page data={derived} />}
+        {tab === "clarity" && <ClarityPage data={derived} />}
       </main>
     </div>
   );

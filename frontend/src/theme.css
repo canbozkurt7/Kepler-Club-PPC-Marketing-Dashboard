@@ -1,21 +1,22 @@
-/* Kepler PPC Dashboard — Stripe-inspired design system (design-md/stripe/DESIGN.md) */
+/* Kepler PPC Dashboard — Kepler Club brand palette (blue/primary-blue/gray scales) */
 
 :root {
-  /* Colors */
-  --primary: #533afd;
-  --primary-deep: #4434d4;
-  --primary-press: #2e2b8c;
-  --primary-soft: #665efd;
-  --primary-subdued: #b9b9f9;
-  --brand-dark: #1c1e54;
-  --ink: #0d253d;
-  --ink-secondary: #273951;
-  --ink-mute: #64748d;
+  /* Brand colors — from Kepler Club palette */
+  --primary: #4d5fd9; /* blue-900 */
+  --primary-deep: #3a4bb5; /* blue-1000 */
+  --primary-press: #221c4e; /* primary-blue-900 */
+  --primary-soft: #8fa0ff; /* blue-700 */
+  --primary-subdued: #d3d7f7; /* blue-transparent-400 */
+  --brand-dark: #221c4e; /* primary-blue-900 */
+  --brand-darkest: #100d28; /* primary-blue-1000 */
+  --ink: #1c1d21; /* text-900 */
+  --ink-secondary: #3e3f44; /* text-800 */
+  --ink-mute: #837ca2; /* primary-blue-700 */
   --on-primary: #ffffff;
   --canvas: #ffffff;
-  --canvas-soft: #f6f9fc;
-  --canvas-cream: #f5e9d4;
-  --hairline: #e3e8ee;
+  --canvas-soft: #f4f3f8; /* primary-blue-200 */
+  --canvas-tint: #f6f7fe; /* blue-transparent-100 */
+  --hairline: #e4e4e4; /* light-gray-900 */
   --ruby: #ea2261;
   --magenta: #f96bee;
 
@@ -89,7 +90,7 @@ body {
   width: 28px;
   height: 28px;
   border-radius: var(--r-md);
-  background: linear-gradient(135deg, var(--primary) 0%, var(--magenta) 100%);
+  background: linear-gradient(135deg, var(--primary-deep) 0%, var(--primary-soft) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -109,17 +110,17 @@ body {
   font-weight: 300;
 }
 
-/* Gradient mesh band — the brand's atmospheric signature */
+/* Gradient band — Kepler brand blues, light to deep */
 .mesh {
   height: 4px;
   background: linear-gradient(
     90deg,
-    #f5e9d4 0%,
-    #f9a13b 18%,
-    #b9b9f9 38%,
-    #533afd 58%,
-    #ea2261 80%,
-    #f96bee 100%
+    #f6f7fe 0%,
+    #d3d7f7 22%,
+    #8fa0ff 45%,
+    #4d5fd9 68%,
+    #3a4bb5 84%,
+    #221c4e 100%
   );
 }
 
@@ -196,10 +197,92 @@ body {
   margin-top: 4px;
 }
 
+/* Filters column: date range + location pills */
+.filters-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+@media (max-width: 700px) {
+  .filters-col {
+    align-items: flex-start;
+  }
+}
+
 /* Location filter pills */
 .filters {
   display: flex;
   gap: 8px;
+}
+
+/* Date range picker */
+.range-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.range-presets {
+  display: flex;
+  gap: 4px;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  padding: 3px;
+}
+
+.range-preset {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink-mute);
+  padding: 4px 12px;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+}
+
+.range-preset:hover {
+  color: var(--ink);
+}
+
+.range-preset.active {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-mute);
+}
+
+.range-inputs input[type="date"] {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--ink);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.range-inputs input[type="date"]:hover {
+  border-color: var(--primary-subdued);
+}
+
+.range-inputs input[type="date"]:focus {
+  outline: none;
+  border-color: var(--primary);
 }
 
 .pill {

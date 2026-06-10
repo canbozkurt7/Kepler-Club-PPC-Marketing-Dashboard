@@ -21,7 +21,7 @@ export function ClarityPage({ data }: { data: DashboardData }) {
       )}
 
       <div className="kpi-grid">
-        <KpiCard hero label="Sessions (30d)" value={num(c.totalSessions)} />
+        <KpiCard hero label="Sessions" value={num(c.totalSessions)} />
         <KpiCard
           label="Bounce Rate"
           value={`${c.bounceRate.toFixed(1)}%`}
@@ -35,7 +35,7 @@ export function ClarityPage({ data }: { data: DashboardData }) {
       <div className="section">
         <Card
           title="Friction by page"
-          sub="Dead clicks, rage clicks, and load time per landing page · last 30 days"
+          sub="Dead clicks, rage clicks, and load time per landing page · selected period"
         >
           <table className="data">
             <thead>
