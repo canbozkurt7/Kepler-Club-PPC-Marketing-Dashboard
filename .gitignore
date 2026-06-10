@@ -17,3 +17,6 @@ frontend/build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Test artifacts
+backend/test_dashboard.db
