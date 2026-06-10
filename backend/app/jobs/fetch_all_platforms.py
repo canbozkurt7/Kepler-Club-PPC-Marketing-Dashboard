@@ -196,11 +196,13 @@ def run_hourly_sync():
     logger.info("Starting hourly platform sync...")
 
     try:
-        syncer = PlatformSyncer(db)
+        missing = settings.missing_google_ads_credentials()
+        if missing:
+            logger.warning(f"Skipping Google Ads sync — missing env vars: {missing}")
+            return
 
-        # Sync Google Ads
-        customer_id = settings.google_ads_customer_id
-        syncer.sync_google_ads(customer_id)
+        syncer = PlatformSyncer(db)
+        syncer.sync_google_ads(settings.google_ads_customer_id)
 
         # TODO: Add Meta Ads sync (Phase 2)
         # TODO: Add Yandex Ads sync (Phase 2)

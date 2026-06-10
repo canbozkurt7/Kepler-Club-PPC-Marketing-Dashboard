@@ -7,7 +7,21 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - ./backend/.env
+      - path: ./backend/.env
+        required: false
+    environment:
+      # Set these in Hostinger's Docker manager environment settings
+      # (or create backend/.env on the server)
+      DATABASE_URL: ${DATABASE_URL:-postgresql://localhost/ppc_dashboard}
+      REDIS_URL: redis://redis:6379
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${GOOGLE_ADS_DEVELOPER_TOKEN:-}
+      GOOGLE_ADS_CLIENT_ID: ${GOOGLE_ADS_CLIENT_ID:-}
+      GOOGLE_ADS_CLIENT_SECRET: ${GOOGLE_ADS_CLIENT_SECRET:-}
+      GOOGLE_ADS_REFRESH_TOKEN: ${GOOGLE_ADS_REFRESH_TOKEN:-}
+      GOOGLE_ADS_CUSTOMER_ID: ${GOOGLE_ADS_CUSTOMER_ID:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      CLARITY_API_TOKEN: ${CLARITY_API_TOKEN:-}
     depends_on:
       - redis
     # Database is Supabase (external) — no local postgres container needed

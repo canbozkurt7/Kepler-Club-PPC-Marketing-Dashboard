@@ -68,8 +68,18 @@ def root():
 
 @app.get("/health")
 def health():
-    """Health check."""
-    return {"status": "ok"}
+    """Health check, including which credentials are still missing."""
+    from .config import settings
+
+    missing_google = settings.missing_google_ads_credentials()
+    missing_smtp = settings.missing_smtp_credentials()
+
+    return {
+        "status": "ok",
+        "google_ads_configured": not missing_google,
+        "email_alerts_configured": not missing_smtp,
+        "missing_env_vars": missing_google + missing_smtp,
+    }
 
 
 if __name__ == "__main__":
