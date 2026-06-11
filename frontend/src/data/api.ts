@@ -2,25 +2,54 @@ import { demoData } from "./demo";
 import type { DashboardData } from "./types";
 
 /*
- * Fetches the live dashboard payload.
- * - When the app is served by the FastAPI backend (production on the VPS),
- *   VITE_API_URL is unset and the fetch goes to the same origin.
- * - VITE_API_URL can point at a remote API for split deployments.
- * - Any failure (backend down, no data synced yet, local dev without a
- *   backend) falls back to the demo dataset so the UI always renders.
+ * Live API client.
+ * - Served by the FastAPI backend (production): VITE_API_URL is unset and
+ *   requests go to the same origin.
+ * - The initial load falls back to demo data when the API is unreachable
+ *   or the database is empty (backend 404).
+ * - Range queries (fetchDashboardRange) are server-side: the backend
+ *   recomputes every metric exactly for the requested window. They never
+ *   fall back to demo — on failure the caller keeps the current view.
  */
 
 const API_URL = ((import.meta.env.VITE_API_URL as string | undefined) ?? "").replace(/\/$/, "");
 
+export interface ApiRange {
+  from: string; // YYYY-MM-DD
+  to: string;
+}
+
+function endpointUrl(range?: ApiRange): string {
+  const params = range ? `?date_from=${range.from}&date_to=${range.to}` : "";
+  return `${API_URL}/api/v1/dashboard/full${params}`;
+}
+
+async function fetchLive(range?: ApiRange): Promise<DashboardData> {
+  const res = await fetch(endpointUrl(range), {
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  const data = (await res.json()) as DashboardData;
+  return { ...data, source: "live" };
+}
+
+/** Initial load: live if possible, demo otherwise. */
 export async function fetchDashboard(): Promise<DashboardData> {
   try {
-    const res = await fetch(`${API_URL}/api/v1/dashboard/full`, {
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) throw new Error(`API ${res.status}`);
-    const data = (await res.json()) as DashboardData;
-    return { ...data, source: "live" };
+    return await fetchLive();
   } catch {
     return demoData;
+  }
+}
+
+/**
+ * Server-side range query. Returns null on failure so the caller can keep
+ * showing the previous view instead of flipping to demo data.
+ */
+export async function fetchDashboardRange(range: ApiRange): Promise<DashboardData | null> {
+  try {
+    return await fetchLive(range);
+  } catch {
+    return null;
   }
 }

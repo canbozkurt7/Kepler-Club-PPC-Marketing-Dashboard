@@ -84,6 +84,8 @@ export interface ClaritySnapshot {
 export interface DashboardData {
   source: "live" | "demo";
   updatedAt: string;
+  /** Full span of synced data (independent of the requested window). */
+  dataBounds?: { min: string | null; max: string | null };
   kpis: Record<PlatformKey | "blended", Kpis>;
   trend: TrendPoint[];
   trendByPlatform: Record<PlatformKey, TrendPoint[]>;

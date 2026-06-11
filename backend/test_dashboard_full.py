@@ -94,16 +94,53 @@ assert set(result["campaigns"][0].keys()) == expected_campaign
 
 print("\n[OK] Payload shape matches frontend DashboardData exactly")
 
-# Empty-range behaviour: must 404 so the frontend falls back to demo data
+# Date-window query: subset of days must reduce the KPIs
+mid = (today - timedelta(days=2)).isoformat()
+windowed = get_dashboard_full(date_from=mid, date_to=today.isoformat(), db=db)
+assert len(windowed["trend"]) == 3, f"Expected 3 trend points, got {len(windowed['trend'])}"
+assert windowed["kpis"]["blended"]["spend"] < result["kpis"]["blended"]["spend"]
+print(f"[OK] Window query: 3 days -> spend {windowed['kpis']['blended']['spend']}"
+      f" < full {result['kpis']['blended']['spend']}")
+
+# Data bounds reported regardless of window
+assert windowed["dataBounds"]["min"] == (today - timedelta(days=4)).isoformat()
+assert windowed["dataBounds"]["max"] == today.isoformat()
+print("[OK] dataBounds reflect full DB span even for a narrow window")
+
+# Empty window over a POPULATED database: zeros, NOT 404 (must never
+# flip a live dashboard back to demo data)
+empty_window = get_dashboard_full(date_from="2020-01-01", date_to="2020-01-31", db=db)
+assert empty_window["kpis"]["blended"]["spend"] == 0
+assert empty_window["trend"] == []
+assert empty_window["dataBounds"]["min"] is not None
+print("[OK] Empty window over populated DB returns honest zeros (no 404)")
+
+# Reversed dates are swapped, not an error
+swapped = get_dashboard_full(date_from=today.isoformat(), date_to=mid, db=db)
+assert len(swapped["trend"]) == 3
+print("[OK] Reversed date_from/date_to are swapped gracefully")
+
+# Invalid date -> 400
 from fastapi import HTTPException
 
 try:
-    get_dashboard_full(date_from="2020-01-01", date_to="2020-01-31", db=db)
-    print("[FAIL] Expected 404 for empty range")
+    get_dashboard_full(date_from="not-a-date", date_to=None, db=db)
+    print("[FAIL] Expected 400 for invalid date")
+    raise SystemExit(1)
+except HTTPException as e:
+    assert e.status_code == 400
+    print("[OK] Invalid date returns 400")
+
+# Truly empty database: 404 (frontend cue for demo fallback)
+db.query(DailyMetrics).delete()
+db.commit()
+try:
+    get_dashboard_full(date_from=None, date_to=None, db=db)
+    print("[FAIL] Expected 404 for empty database")
     raise SystemExit(1)
 except HTTPException as e:
     assert e.status_code == 404
-    print("[OK] Empty range returns 404 (frontend falls back to demo)")
+    print("[OK] Truly empty database returns 404 (frontend falls back to demo)")
 
 db.close()
 print("\n[OK] All assertions passed")

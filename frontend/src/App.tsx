@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { DashboardData, LocationCode } from "./data/types";
-import { fetchDashboard } from "./data/api";
+import { fetchDashboard, fetchDashboardRange } from "./data/api";
 import { deriveForRange, type DateRange } from "./data/derive";
 import { DateRangePicker } from "./components/DateRangePicker";
 import { Overview } from "./pages/Overview";
@@ -36,12 +36,18 @@ const PAGE_TITLES: Record<TabKey, { title: string; sub: string }> = {
 export default function App() {
   const [tab, setTab] = useState<TabKey>("overview");
   const [location, setLocation] = useState<LocationCode>("ALL");
-  const [data, setData] = useState<DashboardData | null>(null);
+  // baseData: the initial full-history payload (source of truth for picker bounds)
+  // viewData: what is currently displayed (re-fetched from the backend per range)
+  const [baseData, setBaseData] = useState<DashboardData | null>(null);
+  const [viewData, setViewData] = useState<DashboardData | null>(null);
   const [range, setRange] = useState<DateRange | null>(null);
+  const [updating, setUpdating] = useState(false);
+  const requestSeq = useRef(0);
 
   useEffect(() => {
     fetchDashboard().then((d) => {
-      setData(d);
+      setBaseData(d);
+      setViewData(d);
       if (d.trend.length > 0) {
         setRange({
           from: d.trend[0].date,
@@ -51,12 +57,29 @@ export default function App() {
     });
   }, []);
 
-  const derived = useMemo(
-    () => (data && range ? deriveForRange(data, range) : data),
-    [data, range]
-  );
+  const handleRangeChange = (r: DateRange) => {
+    setRange(r);
+    if (!baseData) return;
 
-  if (!data || !derived || !range) {
+    if (baseData.source === "demo") {
+      // No backend available — filter the demo dataset client-side
+      setViewData(deriveForRange(baseData, r));
+      return;
+    }
+
+    // Live mode: ask the backend to recompute the exact window.
+    // Latest-wins guard prevents a slow older response from overwriting
+    // a newer selection.
+    const seq = ++requestSeq.current;
+    setUpdating(true);
+    fetchDashboardRange(r).then((d) => {
+      if (seq !== requestSeq.current) return;
+      if (d) setViewData(d);
+      setUpdating(false);
+    });
+  };
+
+  if (!baseData || !viewData || !range) {
     return (
       <div className="shell">
         <div className="mesh" />
@@ -69,8 +92,14 @@ export default function App() {
 
   const { title, sub } = PAGE_TITLES[tab];
   const showLocationFilter = tab !== "ga4" && tab !== "clarity";
-  const minDate = data.trend[0].date;
-  const maxDate = data.trend[data.trend.length - 1].date;
+  // Picker bounds: prefer the backend-reported full data span; fall back to
+  // the initial payload's trend span (demo mode).
+  const minDate =
+    baseData.dataBounds?.min ?? baseData.trend[0]?.date ?? range.from;
+  const maxDate =
+    baseData.dataBounds?.max ??
+    baseData.trend[baseData.trend.length - 1]?.date ??
+    range.to;
 
   return (
     <div className="shell">
@@ -83,12 +112,15 @@ export default function App() {
           </div>
         </div>
         <span className="source-chip">
-          <span className={`dot ${data.source === "live" ? "live" : "demo"}`} />
-          {data.source === "live" ? "Live data" : "Demo data"} · updated{" "}
-          {new Date(data.updatedAt).toLocaleTimeString("en-GB", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
+          <span className={`dot ${viewData.source === "live" ? "live" : "demo"}`} />
+          {updating
+            ? "Updating…"
+            : `${viewData.source === "live" ? "Live data" : "Demo data"} · updated ${new Date(
+                viewData.updatedAt
+              ).toLocaleTimeString("en-GB", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}`}
         </span>
       </header>
 
@@ -116,7 +148,7 @@ export default function App() {
               value={range}
               min={minDate}
               max={maxDate}
-              onChange={setRange}
+              onChange={handleRangeChange}
             />
             {showLocationFilter && (
               <div className="filters">
@@ -134,18 +166,20 @@ export default function App() {
           </div>
         </div>
 
-        {tab === "overview" && <Overview data={derived} location={location} />}
-        {tab === "google" && (
-          <PlatformPage platform="google" data={derived} location={location} />
-        )}
-        {tab === "meta" && (
-          <PlatformPage platform="meta" data={derived} location={location} />
-        )}
-        {tab === "yandex" && (
-          <PlatformPage platform="yandex" data={derived} location={location} />
-        )}
-        {tab === "ga4" && <Ga4Page data={derived} />}
-        {tab === "clarity" && <ClarityPage data={derived} />}
+        <div style={{ opacity: updating ? 0.55 : 1, transition: "opacity 0.15s" }}>
+          {tab === "overview" && <Overview data={viewData} location={location} />}
+          {tab === "google" && (
+            <PlatformPage platform="google" data={viewData} location={location} />
+          )}
+          {tab === "meta" && (
+            <PlatformPage platform="meta" data={viewData} location={location} />
+          )}
+          {tab === "yandex" && (
+            <PlatformPage platform="yandex" data={viewData} location={location} />
+          )}
+          {tab === "ga4" && <Ga4Page data={viewData} />}
+          {tab === "clarity" && <ClarityPage data={viewData} />}
+        </div>
       </main>
     </div>
   );

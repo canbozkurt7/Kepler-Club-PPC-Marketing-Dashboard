@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ...database import get_db
@@ -92,18 +93,23 @@ def get_dashboard_full(
     date_to: Optional[str] = Query(None, description="YYYY-MM-DD, default today"),
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
-    to_date = (
-        datetime.strptime(date_to, "%Y-%m-%d").date()
-        if date_to
-        else datetime.utcnow().date()
-    )
-    # Default to a year so the dashboard shows all synced history;
-    # the frontend date picker narrows the view client-side.
-    from_date = (
-        datetime.strptime(date_from, "%Y-%m-%d").date()
-        if date_from
-        else to_date - timedelta(days=365)
-    )
+    try:
+        to_date = (
+            datetime.strptime(date_to, "%Y-%m-%d").date()
+            if date_to
+            else datetime.utcnow().date()
+        )
+        # Default to a year so the dashboard shows all synced history.
+        from_date = (
+            datetime.strptime(date_from, "%Y-%m-%d").date()
+            if date_from
+            else to_date - timedelta(days=365)
+        )
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Dates must be YYYY-MM-DD.")
+
+    if from_date > to_date:
+        from_date, to_date = to_date, from_date
 
     rows: List[DailyMetrics] = (
         db.query(DailyMetrics)
@@ -115,10 +121,16 @@ def get_dashboard_full(
     )
 
     if not rows:
-        raise HTTPException(
-            status_code=404,
-            detail="No metrics synced yet — dashboard will use demo data.",
-        )
+        # 404 ONLY when the database has no metrics at all (first deploy) —
+        # the frontend uses that as its cue to fall back to demo data.
+        # An empty window over a populated database must return honest zeros,
+        # never flip a live dashboard back to demo numbers.
+        has_any = db.query(DailyMetrics.id).limit(1).first()
+        if has_any is None:
+            raise HTTPException(
+                status_code=404,
+                detail="No metrics synced yet — dashboard will use demo data.",
+            )
 
     platforms = {p.id: p.name for p in db.query(Platform).all()}
     locations = {l.id: l for l in db.query(Location).all()}
@@ -280,9 +292,19 @@ def get_dashboard_full(
     except Exception:
         logger.exception("Failed to load clarity metrics")
 
+    # Full span of synced data, independent of the requested window —
+    # the frontend uses this to bound its date picker.
+    bounds = db.query(
+        func.min(DailyMetrics.metric_date), func.max(DailyMetrics.metric_date)
+    ).first()
+
     return {
         "source": "live",
         "updatedAt": datetime.utcnow().isoformat() + "Z",
+        "dataBounds": {
+            "min": bounds[0].isoformat() if bounds and bounds[0] else None,
+            "max": bounds[1].isoformat() if bounds and bounds[1] else None,
+        },
         "kpis": {
             "blended": _kpis(rows),
             **{key: _kpis(rows_by_platform[key]) for key in PLATFORM_KEYS},

@@ -1,9 +1,15 @@
 import type { DateRange } from "../data/derive";
 
 function shiftDays(iso: string, days: number): string {
-  const d = new Date(iso);
-  d.setDate(d.getDate() + days);
+  // UTC-only math: local-time setDate() shifts a day for UTC+ timezones
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+/** Clamp a preset window start so it never precedes the available data. */
+function clampFrom(from: string, min: string): string {
+  return from < min ? min : from;
 }
 
 const PRESETS = [
@@ -24,7 +30,9 @@ export function DateRangePicker({
   onChange: (r: DateRange) => void;
 }) {
   const activePreset = PRESETS.find(
-    (p) => value.to === max && value.from === shiftDays(max, -(p.days - 1))
+    (p) =>
+      value.to === max &&
+      value.from === clampFrom(shiftDays(max, -(p.days - 1)), min)
   );
   const allActive = value.from === min && value.to === max && !activePreset;
 
@@ -36,7 +44,10 @@ export function DateRangePicker({
             key={p.label}
             className={`range-preset ${activePreset?.label === p.label ? "active" : ""}`}
             onClick={() =>
-              onChange({ from: shiftDays(max, -(p.days - 1)), to: max })
+              onChange({
+                from: clampFrom(shiftDays(max, -(p.days - 1)), min),
+                to: max,
+              })
             }
           >
             {p.label}
