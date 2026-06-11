@@ -20,8 +20,8 @@ class PlatformSyncer:
         self.normalizer = DataNormalizer()
         self.enricher = DataEnricher()
 
-    def sync_google_ads(self, customer_id: str) -> bool:
-        """Fetch and store Google Ads data."""
+    def sync_google_ads(self, customer_id: str, days: int = 1) -> bool:
+        """Fetch and store Google Ads data for the last `days` days."""
         sync_log = SyncLog(
             platform_id=1,  # google
             sync_type="google_ads",
@@ -36,8 +36,11 @@ class PlatformSyncer:
             if not client.authenticate():
                 raise Exception("Failed to authenticate with Google Ads")
 
-            # Fetch yesterday's data
-            raw_data = client.fetch_yesterday_metrics(customer_id)
+            # Hourly runs fetch yesterday; backfills fetch a longer window
+            if days <= 1:
+                raw_data = client.fetch_yesterday_metrics(customer_id)
+            else:
+                raw_data = client.fetch_last_n_days(customer_id, days=days)
 
             # Normalize
             normalized = self.normalizer.normalize_metrics(raw_data, "google")
@@ -196,10 +199,10 @@ class PlatformSyncer:
         return stored_count
 
 
-def run_hourly_sync():
-    """Run hourly synchronization of all platforms."""
+def run_hourly_sync(days: int = 1):
+    """Run synchronization of all platforms. days>1 performs a backfill."""
     db = SessionLocal()
-    logger.info("Starting hourly platform sync...")
+    logger.info(f"Starting platform sync (last {days} day(s))...")
 
     try:
         missing = settings.missing_google_ads_credentials()
@@ -208,19 +211,24 @@ def run_hourly_sync():
             return
 
         syncer = PlatformSyncer(db)
-        syncer.sync_google_ads(settings.google_ads_customer_id)
+        syncer.sync_google_ads(settings.google_ads_customer_id, days=days)
 
         # TODO: Add Meta Ads sync (Phase 2)
         # TODO: Add Yandex Ads sync (Phase 2)
 
-        logger.info("Hourly sync completed")
+        logger.info("Sync completed")
 
     except Exception as e:
-        logger.error(f"Hourly sync failed: {str(e)}")
+        logger.error(f"Sync failed: {str(e)}")
 
     finally:
         db.close()
 
 
 if __name__ == "__main__":
-    run_hourly_sync()
+    import sys
+
+    # Usage: python -m app.jobs.fetch_all_platforms [days]
+    # e.g. `... fetch_all_platforms 30` backfills the last 30 days
+    n_days = int(sys.argv[1]) if len(sys.argv) > 1 else 1
+    run_hourly_sync(days=n_days)
