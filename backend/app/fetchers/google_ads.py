@@ -61,7 +61,7 @@ class GoogleAdsClientWrapper:
                 metrics.clicks,
                 metrics.cost_micros,
                 metrics.conversions,
-                metrics.conversion_value,
+                metrics.conversions_value,
                 segments.date
             FROM ad_group
             WHERE segments.date BETWEEN '{start_date}' AND '{end_date}'
@@ -83,7 +83,7 @@ class GoogleAdsClientWrapper:
                     clicks = row.metrics.clicks
                     cost_eur = row.metrics.cost_micros / 1_000_000  # Convert micros to EUR
                     conversions = int(row.metrics.conversions)
-                    conversion_value_eur = row.metrics.conversion_value
+                    conversion_value_eur = row.metrics.conversions_value
 
                     metrics_list.append(
                         {
