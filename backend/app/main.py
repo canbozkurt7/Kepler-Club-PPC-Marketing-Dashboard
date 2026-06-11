@@ -1,8 +1,10 @@
 import logging
 from datetime import datetime, timedelta
+from pathlib import Path
 from zoneinfo import ZoneInfo
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
 from .database import init_db
@@ -75,16 +77,6 @@ app.add_middleware(
 app.include_router(api_v1_router)
 
 
-@app.get("/")
-def root():
-    """Health check endpoint."""
-    return {
-        "status": "healthy",
-        "service": "Kepler Club PPC Dashboard API",
-        "version": "0.1.0",
-    }
-
-
 @app.get("/health")
 def health():
     """Health check, including which credentials are still missing."""
@@ -99,6 +91,14 @@ def health():
         "email_alerts_configured": not missing_smtp,
         "missing_env_vars": missing_google + missing_smtp,
     }
+
+
+# Serve the built React dashboard (copied to ./static in the Docker image).
+# Mounted last so /api/* and /health routes keep precedence.
+_static_dir = Path(__file__).resolve().parent.parent / "static"
+if _static_dir.is_dir():
+    app.mount("/", StaticFiles(directory=str(_static_dir), html=True), name="dashboard")
+    logger.info(f"Serving dashboard UI from {_static_dir}")
 
 
 if __name__ == "__main__":

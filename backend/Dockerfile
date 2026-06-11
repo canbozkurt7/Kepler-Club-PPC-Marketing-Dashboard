@@ -1,3 +1,12 @@
+# Stage 1: build the React dashboard
+FROM node:20-alpine AS frontend
+WORKDIR /fe
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: Python API serving both the API and the built dashboard
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -9,11 +18,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies first (better layer caching)
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY . .
+COPY backend/ .
+
+# Copy the built dashboard — FastAPI serves it at /
+COPY --from=frontend /fe/dist ./static
 
 # Hostinger VPS / reverse proxy will route to this port
 ENV PORT=8000
