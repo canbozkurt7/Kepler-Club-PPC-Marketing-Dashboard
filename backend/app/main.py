@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from pathlib import Path
 from zoneinfo import ZoneInfo
 from fastapi import FastAPI
@@ -7,7 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
-from .database import init_db
+from .database import init_db, SessionLocal
+from .models import ClarityFrictionMetrics, Location
 from .api.v1 import router as api_v1_router
 from .jobs.fetch_all_platforms import run_hourly_sync
 
@@ -21,6 +22,42 @@ logger = logging.getLogger(__name__)
 scheduler = BackgroundScheduler(timezone="Europe/Istanbul")
 
 
+def seed_clarity_data():
+    """Seed Clarity friction metrics for all locations if empty."""
+    db = SessionLocal()
+    try:
+        # Check if Clarity data exists
+        existing = db.query(ClarityFrictionMetrics).count()
+        if existing > 0:
+            return
+
+        # Seed for all locations
+        locations = db.query(Location).all()
+        today = date.today()
+
+        for loc in locations:
+            clarity = ClarityFrictionMetrics(
+                location_id=loc.id,
+                friction_date=today,
+                page_url="site-wide",
+                dead_clicks=1185,
+                rage_clicks=53,
+                bounce_rate=80.62,
+                avg_load_time_ms=9426.59,
+                sessions=3859,
+            )
+            db.add(clarity)
+
+        db.commit()
+        logger.info(f"Seeded Clarity data for {len(locations)} locations")
+
+    except Exception as e:
+        logger.error(f"Failed to seed Clarity data: {str(e)}")
+        db.rollback()
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage app startup and shutdown."""
@@ -29,6 +66,7 @@ async def lifespan(app: FastAPI):
     try:
         init_db()
         logger.info("Database tables initialized")
+        seed_clarity_data()
     except Exception as e:
         logger.error(f"Failed to initialize database: {str(e)}")
 
