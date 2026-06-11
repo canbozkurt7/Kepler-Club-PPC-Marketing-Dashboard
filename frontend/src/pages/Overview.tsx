@@ -97,6 +97,7 @@ export function Overview({
 
       <div className="section">
         <Card title="Platform breakdown" sub="selected period · EUR">
+          <div className="table-scroll">
           <table className="data">
             <thead>
               <tr>
@@ -134,6 +135,7 @@ export function Overview({
               ))}
             </tbody>
           </table>
+          </div>
         </Card>
       </div>
 

@@ -37,6 +37,7 @@ export function ClarityPage({ data }: { data: DashboardData }) {
           title="Friction by page"
           sub="Dead clicks, rage clicks, and load time per landing page · selected period"
         >
+          <div className="table-scroll">
           <table className="data">
             <thead>
               <tr>
@@ -80,6 +81,7 @@ export function ClarityPage({ data }: { data: DashboardData }) {
               })}
             </tbody>
           </table>
+          </div>
         </Card>
       </div>
 

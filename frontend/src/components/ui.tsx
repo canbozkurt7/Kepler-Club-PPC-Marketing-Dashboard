@@ -82,6 +82,7 @@ export function CampaignTable({
     );
   }
   return (
+    <div className="table-scroll">
     <table className="data">
       <thead>
         <tr>
@@ -124,6 +125,7 @@ export function CampaignTable({
         ))}
       </tbody>
     </table>
+    </div>
   );
 }
 

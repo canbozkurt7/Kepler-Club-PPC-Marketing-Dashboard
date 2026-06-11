@@ -32,6 +32,7 @@ export function Ga4Page({ data }: { data: DashboardData }) {
 
       <div className="section">
         <Card title="Sessions by channel" sub="Default channel grouping · selected period">
+          <div className="table-scroll">
           <table className="data">
             <thead>
               <tr>
@@ -75,6 +76,7 @@ export function Ga4Page({ data }: { data: DashboardData }) {
               ))}
             </tbody>
           </table>
+          </div>
         </Card>
       </div>
     </>
