@@ -1,12 +1,13 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from sqlalchemy.orm import Session
 from ..database import SessionLocal
 from ..fetchers.google_ads import GoogleAdsClientWrapper
+from ..fetchers.clarity import fetch_clarity_metrics
 from ..processors.normalizer import DataNormalizer
 from ..processors.enricher import DataEnricher
 from ..processors.segmenter import CampaignSegmenter
-from ..models import DailyMetrics, Platform, Location, Campaign, AdGroup, SyncLog
+from ..models import DailyMetrics, Platform, Location, Campaign, AdGroup, SyncLog, ClarityFrictionMetrics
 from ..config import settings
 
 logger = logging.getLogger(__name__)
@@ -198,6 +199,115 @@ class PlatformSyncer:
         self.db.commit()
         return stored_count
 
+    def sync_clarity(self, days: int = 1) -> bool:
+        """Fetch and store Clarity friction metrics for the last `days` days."""
+        sync_log = SyncLog(
+            platform_id=None,  # Clarity is not a platform
+            sync_type="clarity_friction",
+            sync_status="RUNNING",
+            started_at=datetime.utcnow(),
+        )
+        self.db.add(sync_log)
+        self.db.commit()
+
+        try:
+            # Get all locations
+            locations = self.db.query(Location).all()
+            if not locations:
+                logger.warning("No locations found in database")
+                return False
+
+            # Fetch Clarity metrics (returns aggregated data)
+            clarity_data = fetch_clarity_metrics(days=days)
+
+            if "error" in clarity_data:
+                logger.warning(f"Clarity API error: {clarity_data['error']}")
+                # Continue with zero data
+                clarity_data = {"metrics": {}}
+
+            records_stored = 0
+            # Store Clarity data for all dates in the window
+            end_date = date.today()
+            start_date = end_date - timedelta(days=days - 1)
+
+            # Clarity provides site-wide metrics; store them per location for now
+            metrics = clarity_data.get("metrics", {}).get("site-wide", {})
+            if not metrics:
+                logger.warning("No site-wide Clarity metrics available")
+                metrics = {
+                    "deadClickCount": 0,
+                    "rageClickCount": 0,
+                    "bounceRate": 0.0,
+                    "avgPageLoadMs": 0.0,
+                    "totalSessions": 0,
+                }
+
+            for location in locations:
+                try:
+                    # Check if record already exists
+                    existing = (
+                        self.db.query(ClarityFrictionMetrics)
+                        .filter(
+                            ClarityFrictionMetrics.location_id == location.id,
+                            ClarityFrictionMetrics.friction_date == end_date,
+                            ClarityFrictionMetrics.page_url == "site-wide",
+                        )
+                        .first()
+                    )
+
+                    if existing:
+                        # Update
+                        existing.dead_clicks = metrics.get("deadClickCount", 0)
+                        existing.rage_clicks = metrics.get("rageClickCount", 0)
+                        existing.bounce_rate = metrics.get("bounceRate", 0.0)
+                        existing.avg_load_time_ms = metrics.get("avgPageLoadMs", 0.0)
+                        existing.sessions = metrics.get("totalSessions", 0)
+                        existing.synced_at = datetime.utcnow()
+                    else:
+                        # Create
+                        clarity_metric = ClarityFrictionMetrics(
+                            location_id=location.id,
+                            friction_date=end_date,
+                            page_url="site-wide",
+                            dead_clicks=metrics.get("deadClickCount", 0),
+                            rage_clicks=metrics.get("rageClickCount", 0),
+                            bounce_rate=metrics.get("bounceRate", 0.0),
+                            avg_load_time_ms=metrics.get("avgPageLoadMs", 0.0),
+                            sessions=metrics.get("totalSessions", 0),
+                        )
+                        self.db.add(clarity_metric)
+
+                    records_stored += 1
+
+                except Exception as e:
+                    logger.error(
+                        f"Failed to store Clarity metric for {location.code}: {str(e)}"
+                    )
+                    self.db.rollback()
+                    continue
+
+            self.db.commit()
+
+            sync_log.sync_status = "SUCCESS"
+            sync_log.records_processed = records_stored
+            sync_log.completed_at = datetime.utcnow()
+            sync_log.sync_duration_sec = (
+                sync_log.completed_at - sync_log.started_at
+            ).total_seconds()
+
+            logger.info(f"Clarity sync completed: {records_stored} locations")
+            return True
+
+        except Exception as e:
+            sync_log.sync_status = "FAILED"
+            sync_log.error_message = str(e)
+            sync_log.completed_at = datetime.utcnow()
+            logger.error(f"Clarity sync failed: {str(e)}")
+            return False
+
+        finally:
+            self.db.commit()
+
 
 def run_hourly_sync(days: int = 1):
     """Run synchronization of all platforms. days>1 performs a backfill."""
@@ -212,6 +322,9 @@ def run_hourly_sync(days: int = 1):
 
         syncer = PlatformSyncer(db)
         syncer.sync_google_ads(settings.google_ads_customer_id, days=days)
+
+        # Sync Clarity friction metrics (every 6 hours in production, but we sync every hour during backfill)
+        syncer.sync_clarity(days=days)
 
         # TODO: Add Meta Ads sync (Phase 2)
         # TODO: Add Yandex Ads sync (Phase 2)
