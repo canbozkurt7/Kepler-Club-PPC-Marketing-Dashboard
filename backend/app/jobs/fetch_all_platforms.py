@@ -90,12 +90,16 @@ class PlatformSyncer:
                     )
                     continue
 
+                # Platform APIs return numeric IDs; columns are VARCHAR
+                campaign_ext_id = str(record.get("campaign_id"))
+                ad_group_ext_id = str(record.get("ad_group_id"))
+
                 # Get or create campaign
                 campaign = (
                     self.db.query(Campaign)
                     .filter(
                         Campaign.platform_id == platform.id,
-                        Campaign.platform_campaign_id == record.get("campaign_id"),
+                        Campaign.platform_campaign_id == campaign_ext_id,
                     )
                     .first()
                 )
@@ -103,7 +107,7 @@ class PlatformSyncer:
                 if not campaign:
                     campaign = Campaign(
                         platform_id=platform.id,
-                        platform_campaign_id=record.get("campaign_id"),
+                        platform_campaign_id=campaign_ext_id,
                         location_id=location_id,
                         name=record.get("campaign_name"),
                         status="ACTIVE",
@@ -116,7 +120,7 @@ class PlatformSyncer:
                     self.db.query(AdGroup)
                     .filter(
                         AdGroup.campaign_id == campaign.id,
-                        AdGroup.platform_ad_group_id == record.get("ad_group_id"),
+                        AdGroup.platform_ad_group_id == ad_group_ext_id,
                     )
                     .first()
                 )
@@ -124,7 +128,7 @@ class PlatformSyncer:
                 if not ad_group:
                     ad_group = AdGroup(
                         campaign_id=campaign.id,
-                        platform_ad_group_id=record.get("ad_group_id"),
+                        platform_ad_group_id=ad_group_ext_id,
                         name=record.get("ad_group_name"),
                         status="ACTIVE",
                     )
@@ -184,6 +188,8 @@ class PlatformSyncer:
 
             except Exception as e:
                 logger.error(f"Failed to store metric record: {str(e)}")
+                # Reset the poisoned transaction so later records can still store
+                self.db.rollback()
                 continue
 
         self.db.commit()
