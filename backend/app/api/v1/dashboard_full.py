@@ -88,7 +88,7 @@ def _trend(rows: List[DailyMetrics]) -> List[Dict[str, Any]]:
 
 @router.get("/dashboard/full")
 def get_dashboard_full(
-    date_from: Optional[str] = Query(None, description="YYYY-MM-DD, default 30 days ago"),
+    date_from: Optional[str] = Query(None, description="YYYY-MM-DD, default 365 days ago"),
     date_to: Optional[str] = Query(None, description="YYYY-MM-DD, default today"),
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
@@ -97,10 +97,12 @@ def get_dashboard_full(
         if date_to
         else datetime.utcnow().date()
     )
+    # Default to a year so the dashboard shows all synced history;
+    # the frontend date picker narrows the view client-side.
     from_date = (
         datetime.strptime(date_from, "%Y-%m-%d").date()
         if date_from
-        else to_date - timedelta(days=30)
+        else to_date - timedelta(days=365)
     )
 
     rows: List[DailyMetrics] = (

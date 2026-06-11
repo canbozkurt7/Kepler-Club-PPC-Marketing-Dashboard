@@ -26,6 +26,7 @@ export function DateRangePicker({
   const activePreset = PRESETS.find(
     (p) => value.to === max && value.from === shiftDays(max, -(p.days - 1))
   );
+  const allActive = value.from === min && value.to === max && !activePreset;
 
   return (
     <div className="range-box">
@@ -41,6 +42,12 @@ export function DateRangePicker({
             {p.label}
           </button>
         ))}
+        <button
+          className={`range-preset ${allActive ? "active" : ""}`}
+          onClick={() => onChange({ from: min, to: max })}
+        >
+          All
+        </button>
       </div>
       <div className="range-inputs">
         <input
