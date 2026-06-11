@@ -28,7 +28,7 @@ const PAGE_TITLES: Record<TabKey, { title: string; sub: string }> = {
   },
   google: { title: "Google Ads", sub: "Search, PMax and display campaigns" },
   meta: { title: "Meta Ads", sub: "Facebook and Instagram campaigns" },
-  yandex: { title: "Yandex Ads", sub: "Yandex Direct campaigns · RUB converted to EUR" },
+  yandex: { title: "Yandex Ads", sub: "Yandex Direct campaigns · RUB converted to TRY" },
   ga4: { title: "Google Analytics 4", sub: "Site traffic, engagement and conversions" },
   clarity: { title: "Microsoft Clarity", sub: "UX friction signals correlated with ad spend" },
 };

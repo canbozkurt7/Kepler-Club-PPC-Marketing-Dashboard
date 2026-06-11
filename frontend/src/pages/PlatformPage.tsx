@@ -4,7 +4,8 @@ import {
   CampaignTable,
   KpiCard,
   PLATFORM_META,
-  eur,
+  convValue,
+  money,
   num,
 } from "../components/ui";
 import { MiniAreaChart, SpendRoasChart } from "../components/TrendChart";
@@ -47,15 +48,18 @@ export function PlatformPage({
 
       <div className="kpi-grid">
         <KpiCard hero label={`${meta.label} ROAS`} value={`${k.roas.toFixed(2)}x`} />
-        <KpiCard label="Spend" value={eur(k.spend)} />
-        <KpiCard label="Revenue" value={eur(k.revenue)} />
+        <KpiCard label="Spend" value={money(k.spend)} />
+        <KpiCard
+          label="Conversion Value"
+          value={money(convValue(k.spend, k.roas, k.revenue))}
+        />
         <KpiCard label="Conversions" value={num(k.conversions)} />
-        <KpiCard label="CPA" value={eur(k.cpa)} />
+        <KpiCard label="CPA" value={money(k.cpa)} />
         <KpiCard label="CTR" value={`${k.ctr.toFixed(1)}%`} />
       </div>
 
       <div className="section section-grid grid-2-1">
-        <Card title="Spend vs ROAS" sub={`${meta.label} · selected period · EUR`}>
+        <Card title="Spend vs ROAS" sub={`${meta.label} · selected period · TRY`}>
           <SpendRoasChart data={trend} />
         </Card>
         <Card title="Conversions" sub="Daily · selected period">

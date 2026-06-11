@@ -42,7 +42,7 @@ export function SpendRoasChart({ data }: { data: TrendPoint[] }) {
           tick={tickStyle}
           tickLine={false}
           axisLine={false}
-          tickFormatter={(v: number) => `€${v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`}
+          tickFormatter={(v: number) => `₺${v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`}
           width={52}
         />
         <YAxis
@@ -66,7 +66,7 @@ export function SpendRoasChart({ data }: { data: TrendPoint[] }) {
           formatter={(value: number, name: string) =>
             name === "ROAS"
               ? [`${value.toFixed(2)}x`, name]
-              : [`€${value.toLocaleString()}`, name]
+              : [`₺${value.toLocaleString("tr-TR")}`, name]
           }
         />
         <Area

@@ -174,7 +174,7 @@ export const demoData: DashboardData = {
     {
       id: "a2",
       severity: "HIGH",
-      message: "CPA above €200 on SAW - PMax Rooms (€214)",
+      message: "CPA above ₺200 on SAW - PMax Rooms (₺214)",
       location: "SAW",
       platform: "google",
       triggeredAt: "2026-06-10T07:02:00Z",

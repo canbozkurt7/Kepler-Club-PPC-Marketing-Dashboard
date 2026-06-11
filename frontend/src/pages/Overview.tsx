@@ -5,7 +5,8 @@ import {
   KpiCard,
   PLATFORM_META,
   SeverityPill,
-  eur,
+  convValue,
+  money,
   num,
 } from "../components/ui";
 import { SpendRoasChart } from "../components/TrendChart";
@@ -39,12 +40,12 @@ export function Overview({
         />
         <KpiCard
           label="Total Spend"
-          value={eur(k.spend)}
+          value={money(k.spend)}
           delta={{ value: "2.1%", direction: "up", goodWhen: "down" }}
         />
         <KpiCard
-          label="Revenue"
-          value={eur(k.revenue)}
+          label="Conversion Value"
+          value={money(convValue(k.spend, k.roas, k.revenue))}
           delta={{ value: "6.8%", direction: "up", goodWhen: "up" }}
         />
         <KpiCard
@@ -54,7 +55,7 @@ export function Overview({
         />
         <KpiCard
           label="Blended CPA"
-          value={eur(k.cpa)}
+          value={money(k.cpa)}
           delta={{ value: "1.9%", direction: "down", goodWhen: "down" }}
         />
       </div>
@@ -62,7 +63,7 @@ export function Overview({
       <div className="section section-grid grid-2-1">
         <Card
           title="Spend vs ROAS"
-          sub="All platforms blended · selected period · EUR"
+          sub="All platforms blended · selected period · TRY"
         >
           <SpendRoasChart data={data.trend} />
         </Card>
@@ -96,14 +97,14 @@ export function Overview({
       </div>
 
       <div className="section">
-        <Card title="Platform breakdown" sub="selected period · EUR">
+        <Card title="Platform breakdown" sub="selected period · TRY">
           <div className="table-scroll">
           <table className="data">
             <thead>
               <tr>
                 <th>Platform</th>
                 <th className="num">Spend</th>
-                <th className="num">Revenue</th>
+                <th className="num">Conv. Value</th>
                 <th className="num">ROAS</th>
                 <th className="num">Conversions</th>
                 <th className="num">CPA</th>
@@ -120,17 +121,19 @@ export function Overview({
                       {p.label}
                     </span>
                   </td>
-                  <td className="num">{eur(p.kpis.spend)}</td>
-                  <td className="num">{eur(p.kpis.revenue)}</td>
+                  <td className="num">{money(p.kpis.spend)}</td>
+                  <td className="num">
+                    {money(convValue(p.kpis.spend, p.kpis.roas, p.kpis.revenue))}
+                  </td>
                   <td className="num">
                     <strong style={{ fontWeight: 500 }}>
                       {p.kpis.roas.toFixed(2)}x
                     </strong>
                   </td>
                   <td className="num">{num(p.kpis.conversions)}</td>
-                  <td className="num">{eur(p.kpis.cpa)}</td>
+                  <td className="num">{money(p.kpis.cpa)}</td>
                   <td className="num">{p.kpis.ctr.toFixed(1)}%</td>
-                  <td className="num">{eur(p.kpis.cpc)}</td>
+                  <td className="num">{money(p.kpis.cpc)}</td>
                 </tr>
               ))}
             </tbody>
@@ -148,8 +151,12 @@ export function Overview({
             </div>
             <div className="loc-stats">
               <div className="loc-stat">
-                <div className="v">{eur(loc.spend)}</div>
+                <div className="v">{money(loc.spend)}</div>
                 <div className="k">Spend</div>
+              </div>
+              <div className="loc-stat">
+                <div className="v">{money(convValue(loc.spend, loc.roas))}</div>
+                <div className="k">Conv. Value</div>
               </div>
               <div className="loc-stat">
                 <div className="v">{loc.roas.toFixed(1)}x</div>

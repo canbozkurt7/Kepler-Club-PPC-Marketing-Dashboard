@@ -10,13 +10,24 @@ export const PLATFORM_META: Record<
   yandex: { label: "Yandex Ads", color: "#FC3F1D" },
 };
 
-export const eur = (v: number) =>
-  "€" +
-  v.toLocaleString("en-IE", {
+export const money = (v: number) =>
+  "₺" +
+  v.toLocaleString("tr-TR", {
     maximumFractionDigits: v >= 1000 ? 0 : 2,
   });
 
-export const num = (v: number) => v.toLocaleString("en-IE");
+// Kept as alias so existing call sites keep working
+export const eur = money;
+
+export const num = (v: number) => v.toLocaleString("tr-TR");
+
+/**
+ * Conversion value. Google Ads sometimes reports no conversion value even
+ * when ROAS is known — per business rule, value = cost × ROAS, always
+ * scoped to the same unit (campaign/location/platform) as the inputs.
+ */
+export const convValue = (spend: number, roas: number, revenue?: number) =>
+  revenue && revenue > 0 ? revenue : spend * roas;
 
 export function KpiCard({
   label,
@@ -91,7 +102,7 @@ export function CampaignTable({
           <th>Loc</th>
           <th>Status</th>
           <th className="num">Spend</th>
-          <th className="num">Revenue</th>
+          <th className="num">Conv. Value</th>
           <th className="num">ROAS</th>
           <th className="num">Conv.</th>
           <th className="num">CPA</th>
@@ -113,13 +124,13 @@ export function CampaignTable({
                 {r.status === "ACTIVE" ? "Active" : "Paused"}
               </span>
             </td>
-            <td className="num">{eur(r.spend)}</td>
-            <td className="num">{eur(r.revenue)}</td>
+            <td className="num">{money(r.spend)}</td>
+            <td className="num">{money(convValue(r.spend, r.roas, r.revenue))}</td>
             <td className="num">
               <strong style={{ fontWeight: 500 }}>{r.roas.toFixed(2)}x</strong>
             </td>
             <td className="num">{num(r.conversions)}</td>
-            <td className="num">{eur(r.cpa)}</td>
+            <td className="num">{money(r.cpa)}</td>
             <td className="num">{r.ctr.toFixed(1)}%</td>
           </tr>
         ))}
