@@ -1,9 +1,11 @@
 import logging
+import os
 from datetime import datetime, timedelta, date
 from sqlalchemy.orm import Session
 from ..database import SessionLocal
 from ..fetchers.google_ads import GoogleAdsClientWrapper
 from ..fetchers.clarity import fetch_clarity_metrics
+from ..fetchers.meta_ads import fetch_meta_metrics
 from ..processors.normalizer import DataNormalizer
 from ..processors.enricher import DataEnricher
 from ..processors.segmenter import CampaignSegmenter
@@ -200,6 +202,55 @@ class PlatformSyncer:
         self.db.commit()
         return stored_count
 
+    def sync_meta_ads(self, days: int = 1) -> bool:
+        """Fetch and store Meta Ads data."""
+        if not os.getenv("META_ACCESS_TOKEN") or not os.getenv("META_AD_ACCOUNT_ID"):
+            logger.warning("Skipping Meta Ads sync — META_ACCESS_TOKEN or META_AD_ACCOUNT_ID not set")
+            return False
+
+        sync_log = SyncLog(
+            platform_id=2,  # meta
+            sync_type="meta_ads",
+            sync_status="RUNNING",
+            started_at=datetime.utcnow(),
+        )
+        self.db.add(sync_log)
+        self.db.commit()
+
+        try:
+            if days <= 1:
+                date_to = datetime.utcnow().strftime("%Y-%m-%d")
+                date_from = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
+            else:
+                date_to = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
+                date_from = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
+
+            raw_data = fetch_meta_metrics(date_from=date_from, date_to=date_to)
+            normalized = self.normalizer.normalize_metrics(raw_data, "meta")
+            enriched = self.enricher.enrich_records(normalized)
+            segmented = CampaignSegmenter.segment_records(enriched)
+            records_stored = self._store_metrics(segmented, "meta")
+
+            sync_log.sync_status = "SUCCESS"
+            sync_log.records_processed = records_stored
+            sync_log.completed_at = datetime.utcnow()
+            sync_log.sync_duration_sec = (
+                sync_log.completed_at - sync_log.started_at
+            ).total_seconds()
+
+            logger.info(f"Meta Ads sync completed: {records_stored} records")
+            return True
+
+        except Exception as e:
+            sync_log.sync_status = "FAILED"
+            sync_log.error_message = str(e)
+            sync_log.completed_at = datetime.utcnow()
+            logger.error(f"Meta Ads sync failed: {str(e)}")
+            return False
+
+        finally:
+            self.db.commit()
+
     def sync_clarity(self, days: int = 1) -> bool:
         """Fetch site-wide Clarity friction metrics and upsert today's row.
 
@@ -304,6 +355,7 @@ def run_hourly_sync(days: int = 1):
 
         syncer = PlatformSyncer(db)
         syncer.sync_google_ads(settings.google_ads_customer_id, days=days)
+        syncer.sync_meta_ads(days=days)
 
         # Clarity Data Export API allows only 10 requests/day. The sync job
         # now runs every 15 minutes, so gate Clarity to the first run of

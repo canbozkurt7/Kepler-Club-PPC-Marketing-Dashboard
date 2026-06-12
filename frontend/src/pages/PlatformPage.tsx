@@ -11,7 +11,6 @@ import {
 import { MiniAreaChart, SpendRoasChart } from "../components/TrendChart";
 
 const PHASE_NOTE: Partial<Record<PlatformKey, string>> = {
-  meta: "Meta Ads API sync ships in Phase 2 — numbers below are demo data.",
   yandex:
     "Yandex Direct sync (with RUB→EUR conversion) ships in Phase 2 — numbers below are demo data.",
 };
