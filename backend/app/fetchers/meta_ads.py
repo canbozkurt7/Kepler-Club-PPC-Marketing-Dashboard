@@ -11,11 +11,19 @@ logger = logging.getLogger(__name__)
 
 GRAPH_URL = "https://graph.facebook.com/v19.0"
 
-# Action types that count as purchases/conversions
-PURCHASE_ACTION_TYPES = {
+# Action types that count as conversions.
+# Kepler Club campaigns are mostly awareness/traffic — add_to_cart is the
+# deepest funnel action available until purchase pixel events are configured.
+CONVERSION_ACTION_TYPES = {
     "purchase",
     "offsite_conversion.fb_pixel_purchase",
     "omni_purchase",
+    "add_to_cart",
+    "offsite_conversion.fb_pixel_add_to_cart",
+    "omni_add_to_cart",
+    "lead",
+    "offsite_conversion.fb_pixel_lead",
+    "complete_registration",
 }
 
 
@@ -81,8 +89,8 @@ def fetch_meta_metrics(
                     break
 
                 for row in body.get("data", []):
-                    conversions = _sum_actions(row.get("actions"), PURCHASE_ACTION_TYPES)
-                    conv_value = _sum_actions(row.get("action_values"), PURCHASE_ACTION_TYPES)
+                    conversions = _sum_actions(row.get("actions"), CONVERSION_ACTION_TYPES)
+                    conv_value = _sum_actions(row.get("action_values"), CONVERSION_ACTION_TYPES)
 
                     records.append({
                         "campaign_id": row.get("campaign_id"),

@@ -18,24 +18,19 @@ class CampaignSegmenter:
 
     @staticmethod
     def extract_location_code(campaign_name: str) -> Optional[str]:
-        """Extract location code from campaign name. E.g., 'SAW - Search Global' -> 'SAW'."""
-        # Try exact match at beginning
+        """Extract location code from campaign name.
+
+        Handles patterns like:
+          'SAW - Search Global'  (prefix with dash)
+          'Website Trafik_SAW'   (suffix with underscore)
+          '(SAW) Retargeting'    (parentheses)
+          'SAW ve Çevresi'       (prefix word boundary)
+        """
+        upper = campaign_name.upper()
+
         for code in LOCATION_CODE_MAP.keys():
-            if campaign_name.upper().startswith(code):
-                return code
-
-        # Try with regex: word followed by dash
-        match = re.match(r"^([A-Z]{2,4})\s*-", campaign_name)
-        if match:
-            code = match.group(1)
-            if code in LOCATION_CODE_MAP:
-                return code
-
-        # Try parentheses: (SAW)
-        match = re.search(r"\(([A-Z]{2,4})\)", campaign_name)
-        if match:
-            code = match.group(1)
-            if code in LOCATION_CODE_MAP:
+            # Word-boundary match anywhere in the name
+            if re.search(r"(?<![A-Z])" + re.escape(code) + r"(?![A-Z])", upper):
                 return code
 
         logger.warning(f"Could not extract location from campaign name: {campaign_name}")
@@ -51,12 +46,16 @@ class CampaignSegmenter:
 
     @staticmethod
     def segment_record(record: Dict[str, Any]) -> Dict[str, Any]:
-        """Add location_id to a record based on campaign name."""
-        location_id = CampaignSegmenter.get_location_id(record.get("campaign_name", ""))
+        """Add location_id to a record based on campaign or ad group name."""
+        # Try campaign name first, then fall back to ad group name
+        code = CampaignSegmenter.extract_location_code(record.get("campaign_name", ""))
+        if not code:
+            code = CampaignSegmenter.extract_location_code(record.get("ad_group_name", ""))
+        location_id = LOCATION_CODE_MAP.get(code) if code else None
         return {
             **record,
             "location_id": location_id,
-            "location_code": CampaignSegmenter.extract_location_code(record.get("campaign_name", "")),
+            "location_code": code,
         }
 
     @staticmethod
