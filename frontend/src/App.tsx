@@ -7,6 +7,13 @@ import { Overview } from "./pages/Overview";
 import { PlatformPage } from "./pages/PlatformPage";
 import { Ga4Page } from "./pages/Ga4Page";
 import { ClarityPage } from "./pages/ClarityPage";
+import {
+  GoogleLogo,
+  MetaLogo,
+  YandexLogo,
+  Ga4Logo,
+  ClarityLogo,
+} from "./components/Logos";
 
 type TabKey = "overview" | "google" | "meta" | "yandex" | "ga4" | "clarity";
 
@@ -20,6 +27,14 @@ const TABS: { key: TabKey; label: string; dot?: string }[] = [
 ];
 
 const LOCATIONS: LocationCode[] = ["ALL", "SAW", "KLIA", "RIX"];
+
+const PAGE_LOGOS: Partial<Record<TabKey, JSX.Element>> = {
+  google: <GoogleLogo size={22} />,
+  meta: <MetaLogo size={22} />,
+  yandex: <YandexLogo size={22} />,
+  ga4: <Ga4Logo size={22} />,
+  clarity: <ClarityLogo size={22} />,
+};
 
 const PAGE_TITLES: Record<TabKey, { title: string; sub: string }> = {
   overview: {
@@ -167,7 +182,13 @@ export default function App() {
       <main className="page">
         <div className="page-head">
           <div>
-            <h1 className="page-title">{title}</h1>
+            <h1
+              className="page-title"
+              style={{ display: "flex", alignItems: "center", gap: 10 }}
+            >
+              {PAGE_LOGOS[tab]}
+              {title}
+            </h1>
             <div className="page-sub">{sub}</div>
           </div>
           <div className="filters-col">

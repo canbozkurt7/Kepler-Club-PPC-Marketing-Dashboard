@@ -239,11 +239,11 @@ export const demoData: DashboardData = {
       { device: "tablet", sessions: 13710, conversions: 190, revenue: 95000 },
     ],
     countries: [
-      { country: "Turkey", sessions: 84200, conversions: 2100 },
-      { country: "Malaysia", sessions: 41300, conversions: 890 },
-      { country: "Latvia", sessions: 22100, conversions: 480 },
-      { country: "United Kingdom", sessions: 14800, conversions: 320 },
-      { country: "Germany", sessions: 9200, conversions: 210 },
+      { country: "Turkey", sessions: 84200, conversions: 2100, keyEvents: 2100, bounceRate: 44.2 },
+      { country: "Malaysia", sessions: 41300, conversions: 890, keyEvents: 890, bounceRate: 51.7 },
+      { country: "Latvia", sessions: 22100, conversions: 480, keyEvents: 480, bounceRate: 48.9 },
+      { country: "United Kingdom", sessions: 14800, conversions: 320, keyEvents: 320, bounceRate: 39.4 },
+      { country: "Germany", sessions: 9200, conversions: 210, keyEvents: 210, bounceRate: 42.8 },
     ],
     pages: [
       { title: "Kepler Club - Lounge Access", sessions: 62100, conversions: 1840, revenue: 920000 },

@@ -66,7 +66,13 @@ export interface Ga4Snapshot {
   revenue: number;
   topChannels: { channel: string; sessions: number; conversions: number; revenue: number }[];
   devices: { device: string; sessions: number; conversions: number; revenue: number }[];
-  countries: { country: string; sessions: number; conversions: number }[];
+  countries: {
+    country: string;
+    sessions: number;
+    conversions: number;
+    keyEvents?: number;
+    bounceRate?: number;
+  }[];
   pages: { title: string; sessions: number; conversions: number; revenue: number }[];
 }
 

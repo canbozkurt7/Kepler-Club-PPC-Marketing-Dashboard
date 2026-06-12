@@ -29,16 +29,29 @@ export function DateRangePicker({
   max: string;
   onChange: (r: DateRange) => void;
 }) {
-  const activePreset = PRESETS.find(
-    (p) =>
-      value.to === max &&
-      value.from === clampFrom(shiftDays(max, -(p.days - 1)), min)
-  );
-  const allActive = value.from === min && value.to === max && !activePreset;
+  // Local calendar date (sv-SE locale formats as YYYY-MM-DD) — the user is
+  // UTC+3, so toISOString() would report yesterday during the first 3 hours.
+  const today = new Date().toLocaleDateString("sv-SE");
+  const todayActive = value.from === today && value.to === today;
+  const activePreset = todayActive
+    ? undefined
+    : PRESETS.find(
+        (p) =>
+          value.to === max &&
+          value.from === clampFrom(shiftDays(max, -(p.days - 1)), min)
+      );
+  const allActive =
+    value.from === min && value.to === max && !activePreset && !todayActive;
 
   return (
     <div className="range-box">
       <div className="range-presets">
+        <button
+          className={`range-preset ${todayActive ? "active" : ""}`}
+          onClick={() => onChange({ from: today, to: today })}
+        >
+          Today
+        </button>
         {PRESETS.map((p) => (
           <button
             key={p.label}

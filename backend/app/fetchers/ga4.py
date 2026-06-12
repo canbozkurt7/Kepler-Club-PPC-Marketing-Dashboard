@@ -147,17 +147,23 @@ def fetch_ga4_metrics(date_from: date = None, date_to: date = None) -> dict:
             dimensions=[Dimension(name="country")],
             metrics=[
                 Metric(name="sessions"),
-                Metric(name="conversions"),
+                Metric(name="keyEvents"),
+                Metric(name="bounceRate"),
             ],
             limit=10,
         ))
 
         countries = []
         for row in geo_resp.rows:
+            key_events = int(float(row.metric_values[1].value or 0))
             countries.append({
                 "country": row.dimension_values[0].value,
                 "sessions": int(float(row.metric_values[0].value or 0)),
-                "conversions": int(float(row.metric_values[1].value or 0)),
+                # keyEvents is GA4's new name for conversions — keep both
+                # fields so older frontend builds stay compatible.
+                "conversions": key_events,
+                "keyEvents": key_events,
+                "bounceRate": round(float(row.metric_values[2].value or 0) * 100, 1),
             })
 
         # --- Top pages ---

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import type { DashboardData, LocationCode } from "../data/types";
+import { useMemo, useState } from "react";
+import type { DashboardData, LocationCode, TrendPoint } from "../data/types";
 import {
   Card,
   CampaignTable,
@@ -16,6 +16,68 @@ import {
   CtrImpressionsChart,
 } from "../components/TrendChart";
 
+type Granularity = "daily" | "weekly" | "monthly";
+
+/** Monday of the ISO week containing the given date (UTC math). */
+function weekStart(iso: string): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+  return d.toISOString().slice(0, 10);
+}
+
+function aggregateTrend(points: TrendPoint[], g: Granularity): TrendPoint[] {
+  if (g === "daily") return points;
+  const buckets = new Map<string, TrendPoint>();
+  for (const p of points) {
+    const key = g === "weekly" ? weekStart(p.date) : `${p.date.slice(0, 7)}-01`;
+    const b = buckets.get(key);
+    if (!b) {
+      buckets.set(key, { ...p, date: key });
+    } else {
+      b.spend += p.spend;
+      b.revenue += p.revenue;
+      b.conversions += p.conversions;
+      b.clicks = (b.clicks ?? 0) + (p.clicks ?? 0);
+      b.impressions = (b.impressions ?? 0) + (p.impressions ?? 0);
+    }
+  }
+  return [...buckets.keys()].sort().map((k) => {
+    const b = buckets.get(k)!;
+    return {
+      ...b,
+      spend: +b.spend.toFixed(2),
+      revenue: +b.revenue.toFixed(2),
+      roas: b.spend > 0 ? +(b.revenue / b.spend).toFixed(2) : 0,
+    };
+  });
+}
+
+/** Sum several per-campaign daily series into one blended series. */
+function mergeTrends(series: TrendPoint[][]): TrendPoint[] {
+  const byDate = new Map<string, TrendPoint>();
+  for (const points of series) {
+    for (const p of points) {
+      const b = byDate.get(p.date);
+      if (!b) {
+        byDate.set(p.date, { ...p });
+      } else {
+        b.spend += p.spend;
+        b.revenue += p.revenue;
+        b.conversions += p.conversions;
+        b.clicks = (b.clicks ?? 0) + (p.clicks ?? 0);
+        b.impressions = (b.impressions ?? 0) + (p.impressions ?? 0);
+      }
+    }
+  }
+  return [...byDate.keys()].sort().map((k) => {
+    const b = byDate.get(k)!;
+    return {
+      ...b,
+      roas: b.spend > 0 ? +(b.revenue / b.spend).toFixed(2) : 0,
+    };
+  });
+}
+
 export function Overview({
   data,
   location,
@@ -24,7 +86,10 @@ export function Overview({
   location: LocationCode;
 }) {
   const k = data.kpis.blended;
-  const [selectedCampaign, setSelectedCampaign] = useState<string>("ALL");
+  // Empty selection = all campaigns blended
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [granularity, setGranularity] = useState<Granularity>("daily");
 
   const campaigns = data.campaigns
     .filter((c) => location === "ALL" || c.location === location)
@@ -33,11 +98,37 @@ export function Overview({
   // Campaign options for the dropdown (filtered by location)
   const campaignOptions = campaigns.map((c) => ({ id: c.id, name: c.name }));
 
-  // Active trend: blended if ALL selected, per-campaign otherwise
-  const activeTrend =
-    selectedCampaign === "ALL"
-      ? data.trend
-      : (data.trendByCampaign?.[selectedCampaign] ?? data.trend);
+  // Ignore selections that fell out of scope after a location change
+  const validIds = selectedIds.filter((id) =>
+    campaignOptions.some((c) => c.id === id)
+  );
+
+  const activeTrend = useMemo(() => {
+    const daily =
+      validIds.length === 0
+        ? data.trend
+        : mergeTrends(
+            validIds.map((id) => data.trendByCampaign?.[id] ?? [])
+          );
+    return aggregateTrend(daily, granularity);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, validIds.join(","), granularity]);
+
+  const toggleCampaign = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const dropdownLabel =
+    validIds.length === 0
+      ? "All campaigns blended"
+      : validIds.length === 1
+      ? campaignOptions.find((c) => c.id === validIds[0])?.name ?? "1 campaign"
+      : `${validIds.length} campaigns selected`;
+
+  const granularityLabel =
+    granularity === "daily" ? "Daily" : granularity === "weekly" ? "Weekly" : "Monthly";
 
   const platforms = (["google", "meta", "yandex"] as const).map((p) => ({
     key: p,
@@ -58,41 +149,116 @@ export function Overview({
         <KpiCard label="Blended CPA" value={money(k.cpa)} />
       </div>
 
-      {/* Campaign selector for charts */}
+      {/* Campaign selector + granularity for charts */}
       <div className="section" style={{ paddingBottom: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
           <span style={{ fontSize: 12, color: "var(--ink-secondary)", fontWeight: 500 }}>
             Chart view:
           </span>
-          <select
-            value={selectedCampaign}
-            onChange={(e) => setSelectedCampaign(e.target.value)}
-            style={{
-              fontSize: 12,
-              padding: "4px 10px",
-              borderRadius: 6,
-              border: "1px solid var(--border)",
-              background: "var(--canvas)",
-              color: "var(--ink)",
-              cursor: "pointer",
-            }}
-          >
-            <option value="ALL">All campaigns blended</option>
-            {campaignOptions.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setDropdownOpen((o) => !o)}
+              style={{
+                fontSize: 12,
+                padding: "5px 12px",
+                borderRadius: 6,
+                border: "1px solid var(--border)",
+                background: "var(--canvas)",
+                color: "var(--ink)",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              {dropdownLabel}
+              <span style={{ fontSize: 9, opacity: 0.6 }}>▼</span>
+            </button>
+            {dropdownOpen && (
+              <>
+                <div
+                  style={{ position: "fixed", inset: 0, zIndex: 19 }}
+                  onClick={() => setDropdownOpen(false)}
+                />
+                <div
+                  className="card"
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 4px)",
+                    left: 0,
+                    zIndex: 20,
+                    minWidth: 280,
+                    maxHeight: 320,
+                    overflowY: "auto",
+                    padding: 8,
+                    boxShadow: "rgba(0,55,112,0.12) 0 12px 32px",
+                  }}
+                >
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "6px 8px",
+                      fontSize: 12,
+                      cursor: "pointer",
+                      borderRadius: 6,
+                      fontWeight: 500,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={validIds.length === 0}
+                      onChange={() => setSelectedIds([])}
+                    />
+                    All campaigns blended
+                  </label>
+                  <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
+                  {campaignOptions.map((c) => (
+                    <label
+                      key={c.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "6px 8px",
+                        fontSize: 12,
+                        cursor: "pointer",
+                        borderRadius: 6,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={validIds.includes(c.id)}
+                        onChange={() => toggleCampaign(c.id)}
+                      />
+                      {c.name}
+                    </label>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 4 }}>
+            {(["daily", "weekly", "monthly"] as const).map((g) => (
+              <button
+                key={g}
+                className={`pill ${granularity === g ? "active" : ""}`}
+                onClick={() => setGranularity(g)}
+              >
+                {g === "daily" ? "Daily" : g === "weekly" ? "Weekly" : "Monthly"}
+              </button>
             ))}
-          </select>
+          </div>
         </div>
       </div>
 
       {/* 3-chart grid */}
       <div className="section section-grid" style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
-        <Card title="Net Revenue vs Conv. Value" sub="Daily · TRY">
+        <Card title="Net Revenue vs Conv. Value" sub={`${granularityLabel} · TRY`}>
           <NetRevenueChart data={activeTrend} />
         </Card>
-        <Card title="Conversions" sub="Daily count">
+        <Card title="Conversions" sub={`${granularityLabel} count`}>
           <ConversionTrendChart data={activeTrend} />
         </Card>
         <Card title="CTR & Impressions" sub="CTR % (right) · Impressions (left)">

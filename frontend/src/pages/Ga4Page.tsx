@@ -126,24 +126,26 @@ export function Ga4Page({ data }: { data: DashboardData }) {
           </div>
         </Card>
 
-        <Card title="Top countries" sub="Sessions by country">
+        <Card title="Top countries" sub="Sessions, key events and bounce rate by country">
           <div className="table-scroll">
             <table className="data">
               <thead>
                 <tr>
                   <th>Country</th>
                   <th className="num">Sessions</th>
-                  <th className="num">Conv.</th>
+                  <th className="num">Key Events</th>
+                  <th className="num">Bounce Rate</th>
                 </tr>
               </thead>
               <tbody>
                 {g.countries.length === 0 ? (
-                  <tr><td colSpan={3} style={{ textAlign: "center", color: "var(--ink-secondary)", padding: "24px 0" }}>No country data</td></tr>
+                  <tr><td colSpan={4} style={{ textAlign: "center", color: "var(--ink-secondary)", padding: "24px 0" }}>No country data</td></tr>
                 ) : g.countries.map((c) => (
                   <tr key={c.country}>
                     <td className="row-name">{c.country}</td>
                     <td className="num">{num(c.sessions)}</td>
-                    <td className="num">{num(c.conversions)}</td>
+                    <td className="num">{num(c.keyEvents ?? c.conversions)}</td>
+                    <td className="num">{c.bounceRate != null ? `${c.bounceRate.toFixed(1)}%` : "—"}</td>
                   </tr>
                 ))}
               </tbody>
