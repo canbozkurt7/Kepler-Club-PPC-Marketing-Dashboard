@@ -10,7 +10,7 @@ if os.path.exists("test_dashboard.db"):
 os.environ["DATABASE_URL"] = "sqlite:///./test_dashboard.db"
 
 from app.database import SessionLocal, init_db
-from app.models import AdGroup, Campaign, DailyMetrics, Location, Platform
+from app.models import AdGroup, Campaign, DailyMetrics, Location, Platform, ClarityFrictionMetrics
 
 init_db()
 db = SessionLocal()
@@ -63,6 +63,20 @@ for i in range(5):
     db.add(m)
 db.commit()
 
+# Seed Clarity friction metrics
+clarity_metric = ClarityFrictionMetrics(
+    location_id=locations["SAW"].id,
+    friction_date=today,
+    page_url="site-wide",
+    dead_clicks=1185,
+    rage_clicks=53,
+    bounce_rate=80.62,
+    avg_load_time_ms=9426.59,
+    sessions=3859,
+)
+db.add(clarity_metric)
+db.commit()
+
 from app.api.v1.dashboard_full import get_dashboard_full
 
 result = get_dashboard_full(date_from=None, date_to=None, db=db)
@@ -106,6 +120,31 @@ print(f"[OK] Window query: 3 days -> spend {windowed['kpis']['blended']['spend']
 assert windowed["dataBounds"]["min"] == (today - timedelta(days=4)).isoformat()
 assert windowed["dataBounds"]["max"] == today.isoformat()
 print("[OK] dataBounds reflect full DB span even for a narrow window")
+
+# Location filter: SAW (all seeded data) == unfiltered; RIX -> zeros
+saw_only = get_dashboard_full(date_from=None, date_to=None, location="SAW", db=db)
+assert saw_only["kpis"]["blended"]["spend"] == result["kpis"]["blended"]["spend"]
+rix_only = get_dashboard_full(date_from=None, date_to=None, location="RIX", db=db)
+assert rix_only["kpis"]["blended"]["spend"] == 0
+assert rix_only["campaigns"] == []
+print("[OK] location=SAW matches full data; location=RIX returns zeros")
+
+# Unknown location -> 400
+from fastapi import HTTPException
+
+try:
+    get_dashboard_full(date_from=None, date_to=None, location="XXX", db=db)
+    print("[FAIL] Expected 400 for unknown location")
+    raise SystemExit(1)
+except HTTPException as e:
+    assert e.status_code == 400
+    print("[OK] Unknown location returns 400")
+
+# Clarity respects the date window: today's row in-window, not in an old window
+assert result["clarity"]["totalSessions"] == 3859
+old_window = get_dashboard_full(date_from="2020-01-01", date_to="2020-01-31", db=db)
+assert old_window["clarity"]["totalSessions"] == 0
+print("[OK] Clarity metrics respect the requested date window")
 
 # Empty window over a POPULATED database: zeros, NOT 404 (must never
 # flip a live dashboard back to demo data)

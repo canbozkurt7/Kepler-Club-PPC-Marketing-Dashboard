@@ -19,13 +19,19 @@ export interface ApiRange {
   to: string;
 }
 
-function endpointUrl(range?: ApiRange): string {
-  const params = range ? `?date_from=${range.from}&date_to=${range.to}` : "";
-  return `${API_URL}/api/v1/dashboard/full${params}`;
+function endpointUrl(range?: ApiRange, location?: string): string {
+  const params = new URLSearchParams();
+  if (range) {
+    params.set("date_from", range.from);
+    params.set("date_to", range.to);
+  }
+  if (location && location !== "ALL") params.set("location", location);
+  const qs = params.toString();
+  return `${API_URL}/api/v1/dashboard/full${qs ? `?${qs}` : ""}`;
 }
 
-async function fetchLive(range?: ApiRange): Promise<DashboardData> {
-  const res = await fetch(endpointUrl(range), {
+async function fetchLive(range?: ApiRange, location?: string): Promise<DashboardData> {
+  const res = await fetch(endpointUrl(range, location), {
     signal: AbortSignal.timeout(8000),
   });
   if (!res.ok) throw new Error(`API ${res.status}`);
@@ -43,12 +49,16 @@ export async function fetchDashboard(): Promise<DashboardData> {
 }
 
 /**
- * Server-side range query. Returns null on failure so the caller can keep
- * showing the previous view instead of flipping to demo data.
+ * Server-side window query (date range + optional location). Returns null
+ * on failure so the caller keeps the previous view instead of flipping to
+ * demo data.
  */
-export async function fetchDashboardRange(range: ApiRange): Promise<DashboardData | null> {
+export async function fetchDashboardRange(
+  range: ApiRange,
+  location?: string
+): Promise<DashboardData | null> {
   try {
-    return await fetchLive(range);
+    return await fetchLive(range, location);
   } catch {
     return null;
   }

@@ -91,6 +91,7 @@ def _trend(rows: List[DailyMetrics]) -> List[Dict[str, Any]]:
 def get_dashboard_full(
     date_from: Optional[str] = Query(None, description="YYYY-MM-DD, default 365 days ago"),
     date_to: Optional[str] = Query(None, description="YYYY-MM-DD, default today"),
+    location: Optional[str] = Query(None, description="Location code (SAW/KLIA/RIX); omit or ALL for all"),
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     try:
@@ -111,14 +112,22 @@ def get_dashboard_full(
     if from_date > to_date:
         from_date, to_date = to_date, from_date
 
-    rows: List[DailyMetrics] = (
-        db.query(DailyMetrics)
-        .filter(
-            DailyMetrics.metric_date >= from_date,
-            DailyMetrics.metric_date <= to_date,
-        )
-        .all()
+    # Optional location filter — scopes every ad metric (KPIs, trend,
+    # campaigns, location cards) to one airport lounge.
+    loc_filter_id: Optional[int] = None
+    if isinstance(location, str) and location.upper() != "ALL":
+        loc = db.query(Location).filter(Location.code == location.upper()).first()
+        if loc is None:
+            raise HTTPException(status_code=400, detail=f"Unknown location code: {location}")
+        loc_filter_id = loc.id
+
+    metrics_query = db.query(DailyMetrics).filter(
+        DailyMetrics.metric_date >= from_date,
+        DailyMetrics.metric_date <= to_date,
     )
+    if loc_filter_id is not None:
+        metrics_query = metrics_query.filter(DailyMetrics.location_id == loc_filter_id)
+    rows: List[DailyMetrics] = metrics_query.all()
 
     if not rows:
         # 404 ONLY when the database has no metrics at all (first deploy) —
@@ -248,6 +257,12 @@ def get_dashboard_full(
             )
             .all()
         )
+        # Clarity data is site-wide: legacy syncs duplicated the same numbers
+        # across locations, so keep one row per (date, url) before summing.
+        unique_friction: Dict[Any, ClarityFrictionMetrics] = {}
+        for f in friction:
+            unique_friction.setdefault((f.friction_date, f.page_url), f)
+        friction = list(unique_friction.values())
         if friction:
             by_url: Dict[str, List[ClarityFrictionMetrics]] = defaultdict(list)
             for f in friction:

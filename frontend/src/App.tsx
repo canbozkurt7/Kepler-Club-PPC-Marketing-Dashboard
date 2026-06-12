@@ -57,8 +57,10 @@ export default function App() {
     });
   }, []);
 
-  const handleRangeChange = (r: DateRange) => {
-    setRange(r);
+  // Server-side recompute for the exact window (date range + location).
+  // Latest-wins guard prevents a slow older response from overwriting a
+  // newer selection.
+  const refetchView = (r: DateRange, loc: LocationCode) => {
     if (!baseData) return;
 
     if (baseData.source === "demo") {
@@ -67,16 +69,23 @@ export default function App() {
       return;
     }
 
-    // Live mode: ask the backend to recompute the exact window.
-    // Latest-wins guard prevents a slow older response from overwriting
-    // a newer selection.
     const seq = ++requestSeq.current;
     setUpdating(true);
-    fetchDashboardRange(r).then((d) => {
+    fetchDashboardRange(r, loc).then((d) => {
       if (seq !== requestSeq.current) return;
       if (d) setViewData(d);
       setUpdating(false);
     });
+  };
+
+  const handleRangeChange = (r: DateRange) => {
+    setRange(r);
+    refetchView(r, location);
+  };
+
+  const handleLocationChange = (loc: LocationCode) => {
+    setLocation(loc);
+    if (range) refetchView(range, loc);
   };
 
   if (!baseData || !viewData || !range) {
@@ -156,7 +165,7 @@ export default function App() {
                   <button
                     key={loc}
                     className={`pill ${location === loc ? "active" : ""}`}
-                    onClick={() => setLocation(loc)}
+                    onClick={() => handleLocationChange(loc)}
                   >
                     {loc === "ALL" ? "All locations" : loc}
                   </button>
