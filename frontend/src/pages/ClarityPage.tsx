@@ -4,6 +4,22 @@ import { Card, KpiCard, num } from "../components/ui";
 export function ClarityPage({ data }: { data: DashboardData }) {
   const c = data.clarity;
 
+  const frictionScore =
+    c.totalSessions > 0
+      ? +(
+          ((c.deadClickRate / 100) * c.totalSessions +
+            (c.rageClickRate / 100) * c.totalSessions) /
+          c.totalSessions *
+          100
+        ).toFixed(1)
+      : 0;
+
+  const bounceStatus = c.bounceRate < 40 ? "good" : c.bounceRate < 60 ? "warn" : "bad";
+  const deadStatus = c.deadClickRate < 3 ? "good" : c.deadClickRate < 6 ? "warn" : "bad";
+  const rageStatus = c.rageClickRate < 1 ? "good" : c.rageClickRate < 2 ? "warn" : "bad";
+  const loadStatus = c.avgLoadMs < 3000 ? "good" : c.avgLoadMs < 5000 ? "warn" : "bad";
+  const perfStatus = c.performanceScore >= 80 ? "good" : c.performanceScore >= 50 ? "warn" : "bad";
+
   return (
     <>
       {data.source === "demo" && (
@@ -22,6 +38,9 @@ export function ClarityPage({ data }: { data: DashboardData }) {
 
       <div className="kpi-grid">
         <KpiCard hero label="Sessions" value={num(c.totalSessions)} />
+        <KpiCard label="Users" value={num(c.users ?? 0)} />
+        <KpiCard label="Performance Score" value={c.performanceScore ? `${c.performanceScore.toFixed(0)}/100` : "—"} />
+        <KpiCard label="Friction Score" value={`${frictionScore.toFixed(1)}%`} />
         <KpiCard
           label="Bounce Rate"
           value={`${c.bounceRate.toFixed(1)}%`}
@@ -30,6 +49,32 @@ export function ClarityPage({ data }: { data: DashboardData }) {
         <KpiCard label="Dead Click Rate" value={`${c.deadClickRate.toFixed(1)}%`} />
         <KpiCard label="Rage Click Rate" value={`${c.rageClickRate.toFixed(1)}%`} />
         <KpiCard label="Avg. Page Load" value={`${(c.avgLoadMs / 1000).toFixed(1)}s`} />
+      </div>
+
+      {/* CRO thresholds */}
+      <div className="section">
+        <Card title="CRO health thresholds" sub="Current vs best-practice targets">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12, paddingTop: 8 }}>
+            {[
+              { label: "Bounce Rate", value: `${c.bounceRate.toFixed(1)}%`, target: "< 40%", status: bounceStatus },
+              { label: "Dead Click Rate", value: `${c.deadClickRate.toFixed(1)}%`, target: "< 3%", status: deadStatus },
+              { label: "Rage Click Rate", value: `${c.rageClickRate.toFixed(1)}%`, target: "< 1%", status: rageStatus },
+              { label: "Avg. Page Load", value: `${(c.avgLoadMs / 1000).toFixed(1)}s`, target: "< 3s", status: loadStatus },
+              { label: "Performance Score", value: c.performanceScore ? `${c.performanceScore.toFixed(0)}/100` : "—", target: "≥ 80", status: perfStatus },
+            ].map((item) => (
+              <div key={item.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: 8, background: "var(--canvas-soft)", gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 12, color: "var(--ink-secondary)", marginBottom: 2 }}>{item.label}</div>
+                  <div style={{ fontSize: 16, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{item.value}</div>
+                  <div style={{ fontSize: 11, color: "var(--ink-tertiary)" }}>target {item.target}</div>
+                </div>
+                <span className={`status ${item.status}`} style={{ flexShrink: 0 }}>
+                  {item.status === "good" ? "OK" : item.status === "warn" ? "Watch" : "Fix"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
       </div>
 
       <div className="section">

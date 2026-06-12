@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { AlertItem, CampaignRow, PlatformKey } from "../data/types";
 
 export const PLATFORM_META: Record<
@@ -6,7 +6,7 @@ export const PLATFORM_META: Record<
   { label: string; color: string }
 > = {
   google: { label: "Google Ads", color: "#4285F4" },
-  meta: { label: "Meta Ads", color: "#0081FB" },
+  meta: { label: "Meta Ads", color: "#1B3A6B" },
   yandex: { label: "Yandex Ads", color: "#FC3F1D" },
 };
 
@@ -74,6 +74,8 @@ export function SeverityPill({ severity }: { severity: AlertItem["severity"] }) 
   return <span className={`status ${cls} alert-sev`}>{severity}</span>;
 }
 
+type SortKey = "spend" | "revenue" | "roas" | "conversions" | "cpa" | "ctr" | "clicks" | "impressions";
+
 export function CampaignTable({
   rows,
   showPlatform = true,
@@ -81,6 +83,9 @@ export function CampaignTable({
   rows: CampaignRow[];
   showPlatform?: boolean;
 }) {
+  const [sortKey, setSortKey] = useState<SortKey>("spend");
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
+
   if (rows.length === 0) {
     return (
       <div className="empty">
@@ -92,6 +97,29 @@ export function CampaignTable({
       </div>
     );
   }
+
+  const sorted = [...rows].sort((a, b) => {
+    const av = a[sortKey] ?? 0;
+    const bv = b[sortKey] ?? 0;
+    return sortDir === "desc" ? (bv as number) - (av as number) : (av as number) - (bv as number);
+  });
+
+  const col = (key: SortKey, label: string) => {
+    const active = sortKey === key;
+    return (
+      <th
+        className="num"
+        style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+        onClick={() => {
+          if (active) setSortDir(d => d === "desc" ? "asc" : "desc");
+          else { setSortKey(key); setSortDir("desc"); }
+        }}
+      >
+        {label}{active ? (sortDir === "desc" ? " ↓" : " ↑") : ""}
+      </th>
+    );
+  };
+
   return (
     <div className="table-scroll">
     <table className="data">
@@ -101,16 +129,16 @@ export function CampaignTable({
           {showPlatform && <th>Platform</th>}
           <th>Loc</th>
           <th>Status</th>
-          <th className="num">Spend</th>
-          <th className="num">Conv. Value</th>
-          <th className="num">ROAS</th>
-          <th className="num">Conv.</th>
-          <th className="num">CPA</th>
-          <th className="num">CTR</th>
+          {col("spend", "Spend")}
+          {col("revenue", "Conv. Value")}
+          {col("roas", "ROAS")}
+          {col("conversions", "Conv.")}
+          {col("cpa", "CPA")}
+          {col("ctr", "CTR")}
         </tr>
       </thead>
       <tbody>
-        {rows.map((r) => (
+        {sorted.map((r) => (
           <tr key={r.id}>
             <td className="row-name">{r.name}</td>
             {showPlatform && (

@@ -24,12 +24,14 @@ function seeded(seed: number) {
 }
 
 function buildTrend(
-  base: { spend: number; roas: number },
+  base: { spend: number; roas: number; ctr?: number; cpc?: number },
   seed: number
 ): TrendPoint[] {
   const rand = seeded(seed);
   const points: TrendPoint[] = [];
   const today = new Date("2026-06-10");
+  const baseCpc = base.cpc ?? 0.42;
+  const baseCtr = base.ctr ?? 8.0;
   for (let i = DAYS - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
@@ -38,12 +40,16 @@ function buildTrend(
     const spend = Math.round(base.spend * weekend * noise);
     const roas = +(base.roas * (0.85 + rand() * 0.35)).toFixed(2);
     const revenue = Math.round(spend * roas);
+    const clicks = Math.round(spend / baseCpc);
+    const impressions = Math.round(clicks / (baseCtr / 100));
     points.push({
       date: d.toISOString().slice(0, 10),
       spend,
       revenue,
       roas,
       conversions: Math.max(1, Math.round(revenue / 95)),
+      clicks,
+      impressions,
     });
   }
   return points;
@@ -68,9 +74,9 @@ function kpisFromTrend(trend: TrendPoint[], ctr: number, cpc: number): Kpis {
   };
 }
 
-const googleTrend = buildTrend({ spend: 410, roas: 10.4 }, 7);
-const metaTrend = buildTrend({ spend: 165, roas: 5.6 }, 21);
-const yandexTrend = buildTrend({ spend: 70, roas: 7.1 }, 42);
+const googleTrend = buildTrend({ spend: 410, roas: 10.4, ctr: 8.4, cpc: 0.42 }, 7);
+const metaTrend = buildTrend({ spend: 165, roas: 5.6, ctr: 2.1, cpc: 0.61 }, 21);
+const yandexTrend = buildTrend({ spend: 70, roas: 7.1, ctr: 5.2, cpc: 0.28 }, 42);
 
 const google = kpisFromTrend(googleTrend, 8.4, 0.42);
 const meta = kpisFromTrend(metaTrend, 2.1, 0.61);
@@ -86,6 +92,8 @@ const blendedTrend: TrendPoint[] = googleTrend.map((p, i) => {
     roas: +(revenue / spend).toFixed(2),
     conversions:
       p.conversions + metaTrend[i].conversions + yandexTrend[i].conversions,
+    clicks: (p.clicks ?? 0) + (metaTrend[i].clicks ?? 0) + (yandexTrend[i].clicks ?? 0),
+    impressions: (p.impressions ?? 0) + (metaTrend[i].impressions ?? 0) + (yandexTrend[i].impressions ?? 0),
   };
 });
 
@@ -151,6 +159,22 @@ const campaigns: CampaignRow[] = [
   c("y3", "RIX - Search RU", "yandex", "RIX", 320, 6.4, 5.4),
 ];
 
+// Per-campaign trends keyed by campaign id (matches campaigns array above)
+const campaignTrends: Record<string, TrendPoint[]> = {
+  g1: buildTrend({ spend: 194, roas: 14.42, ctr: 9.2, cpc: 0.42 }, 101),
+  g2: buildTrend({ spend: 41, roas: 11.8, ctr: 7.7, cpc: 0.42 }, 102),
+  g3: buildTrend({ spend: 99, roas: 6.81, ctr: 7.9, cpc: 0.42 }, 103),
+  g4: buildTrend({ spend: 47, roas: 8.79, ctr: 8.8, cpc: 0.42 }, 104),
+  g5: buildTrend({ spend: 29, roas: 6.2, ctr: 4.1, cpc: 0.42 }, 105),
+  m1: buildTrend({ spend: 71, roas: 5.9, ctr: 2.3, cpc: 0.61 }, 106),
+  m2: buildTrend({ spend: 33, roas: 8.4, ctr: 3.4, cpc: 0.61 }, 107),
+  m3: buildTrend({ spend: 41, roas: 4.2, ctr: 1.8, cpc: 0.61 }, 108),
+  m4: buildTrend({ spend: 14, roas: 6.7, ctr: 2.9, cpc: 0.61 }, 109),
+  y1: buildTrend({ spend: 44, roas: 7.8, ctr: 6.1, cpc: 0.28 }, 110),
+  y2: buildTrend({ spend: 16, roas: 4.9, ctr: 1.2, cpc: 0.28 }, 111),
+  y3: buildTrend({ spend: 11, roas: 6.4, ctr: 5.4, cpc: 0.28 }, 112),
+};
+
 export const demoData: DashboardData = {
   source: "demo",
   updatedAt: new Date().toISOString(),
@@ -161,6 +185,7 @@ export const demoData: DashboardData = {
     meta: metaTrend,
     yandex: yandexTrend,
   },
+  trendByCampaign: campaignTrends,
   campaigns,
   alerts: [
     {
@@ -199,6 +224,7 @@ export const demoData: DashboardData = {
     engagementRate: 52.5,
     avgSessionSec: 164,
     conversions: 4310,
+    transactions: 1840,
     revenue: 2259301,
     topChannels: [
       { channel: "Paid Search", sessions: 71200, conversions: 2210, revenue: 1100000 },
@@ -229,6 +255,8 @@ export const demoData: DashboardData = {
   },
   clarity: {
     totalSessions: 162400,
+    users: 121800,
+    performanceScore: 74,
     deadClickRate: 4.8,
     rageClickRate: 1.2,
     bounceRate: 61.0,

@@ -1,5 +1,8 @@
 import type { DashboardData } from "../data/types";
-import { Card, KpiCard, num, money } from "../components/ui";
+import { Card, KpiCard, num } from "../components/ui";
+
+const moneyEur = (v: number) =>
+  "€" + v.toLocaleString("de-DE", { maximumFractionDigits: v >= 1000 ? 0 : 2 });
 
 export function Ga4Page({ data }: { data: DashboardData }) {
   const g = data.ga4;
@@ -20,7 +23,8 @@ export function Ga4Page({ data }: { data: DashboardData }) {
         <KpiCard label="Engagement Rate" value={`${g.engagementRate.toFixed(1)}%`} />
         <KpiCard label="Avg. Session" value={fmtDuration(g.avgSessionSec)} />
         <KpiCard label="Conversions" value={num(g.conversions)} />
-        <KpiCard label="Revenue" value={money(g.revenue)} />
+        <KpiCard label="Transactions" value={num(g.transactions ?? 0)} />
+        <KpiCard label="Revenue" value={moneyEur(g.revenue)} />
       </div>
 
       {/* Channels + Devices side by side */}
@@ -56,7 +60,7 @@ export function Ga4Page({ data }: { data: DashboardData }) {
                     </td>
                     <td className="num">{num(c.sessions)}</td>
                     <td className="num">{num(c.conversions)}</td>
-                    <td className="num">{money(c.revenue)}</td>
+                    <td className="num">{moneyEur(c.revenue)}</td>
                     <td className="num">{c.sessions > 0 ? ((c.conversions / c.sessions) * 100).toFixed(2) : "0.00"}%</td>
                   </tr>
                 ))}
@@ -84,7 +88,7 @@ export function Ga4Page({ data }: { data: DashboardData }) {
                     <td className="row-name" style={{ textTransform: "capitalize" }}>{d.device}</td>
                     <td className="num">{num(d.sessions)}</td>
                     <td className="num">{num(d.conversions)}</td>
-                    <td className="num">{money(d.revenue)}</td>
+                    <td className="num">{moneyEur(d.revenue)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -114,7 +118,7 @@ export function Ga4Page({ data }: { data: DashboardData }) {
                     <td className="row-name">{p.title}</td>
                     <td className="num">{num(p.sessions)}</td>
                     <td className="num">{num(p.conversions)}</td>
-                    <td className="num">{money(p.revenue)}</td>
+                    <td className="num">{moneyEur(p.revenue)}</td>
                   </tr>
                 ))}
               </tbody>

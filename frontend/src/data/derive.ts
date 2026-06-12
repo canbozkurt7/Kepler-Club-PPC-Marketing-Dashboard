@@ -48,10 +48,16 @@ export function deriveForRange(base: DashboardData, range: DateRange): Dashboard
     yandex: base.trendByPlatform.yandex.filter((p) => inRange(p.date)),
   };
 
+  const trendByCampaign: Record<string, TrendPoint[]> = {};
+  for (const [id, pts] of Object.entries(base.trendByCampaign ?? {})) {
+    trendByCampaign[id] = pts.filter((p) => inRange(p.date));
+  }
+
   return {
     ...base,
     trend,
     trendByPlatform: platformTrends,
+    trendByCampaign,
     kpis: {
       blended: kpisFromTrend(base.kpis.blended, trend, base.kpis.blended.spend),
       google: kpisFromTrend(base.kpis.google, platformTrends.google, base.kpis.google.spend),
@@ -82,6 +88,7 @@ export function deriveForRange(base: DashboardData, range: DateRange): Dashboard
       sessions: scale(base.ga4.sessions),
       engagedSessions: scale(base.ga4.engagedSessions),
       conversions: scale(base.ga4.conversions),
+      transactions: scale(base.ga4.transactions ?? 0),
       topChannels: base.ga4.topChannels.map((ch) => ({
         ...ch,
         sessions: scale(ch.sessions),
@@ -91,6 +98,7 @@ export function deriveForRange(base: DashboardData, range: DateRange): Dashboard
     clarity: {
       ...base.clarity,
       totalSessions: scale(base.clarity.totalSessions),
+      users: scale(base.clarity.users ?? 0),
       pages: base.clarity.pages.map((p) => ({
         ...p,
         sessions: scale(p.sessions),

@@ -65,13 +65,15 @@ def _kpis(rows: List[DailyMetrics]) -> Dict[str, Any]:
 
 def _trend(rows: List[DailyMetrics]) -> List[Dict[str, Any]]:
     by_date: Dict[str, Dict[str, float]] = defaultdict(
-        lambda: {"spend": 0.0, "revenue": 0.0, "conversions": 0}
+        lambda: {"spend": 0.0, "revenue": 0.0, "conversions": 0, "clicks": 0, "impressions": 0}
     )
     for r in rows:
         d = by_date[r.metric_date.isoformat()]
         d["spend"] += r.spend_eur or 0
         d["revenue"] += r.conversion_value_eur or 0
         d["conversions"] += r.conversions or 0
+        d["clicks"] += r.clicks or 0
+        d["impressions"] += r.impressions or 0
 
     points = []
     for date in sorted(by_date):
@@ -83,9 +85,44 @@ def _trend(rows: List[DailyMetrics]) -> List[Dict[str, Any]]:
                 "revenue": round(d["revenue"], 2),
                 "roas": round(d["revenue"] / d["spend"], 2) if d["spend"] > 0 else 0,
                 "conversions": int(d["conversions"]),
+                "clicks": int(d["clicks"]),
+                "impressions": int(d["impressions"]),
             }
         )
     return points
+
+
+def _trend_by_campaign(
+    rows: List[DailyMetrics], campaigns: Dict[int, Any]
+) -> Dict[str, List[Dict[str, Any]]]:
+    """Per-campaign daily trend keyed by str(campaign_id)."""
+    by_camp: Dict[int, Dict[str, Dict[str, float]]] = defaultdict(
+        lambda: defaultdict(lambda: {"spend": 0.0, "revenue": 0.0, "conversions": 0, "clicks": 0, "impressions": 0})
+    )
+    for r in rows:
+        d = by_camp[r.campaign_id][r.metric_date.isoformat()]
+        d["spend"] += r.spend_eur or 0
+        d["revenue"] += r.conversion_value_eur or 0
+        d["conversions"] += r.conversions or 0
+        d["clicks"] += r.clicks or 0
+        d["impressions"] += r.impressions or 0
+
+    result: Dict[str, List[Dict[str, Any]]] = {}
+    for cid, by_date in by_camp.items():
+        points = []
+        for date in sorted(by_date):
+            d = by_date[date]
+            points.append({
+                "date": date,
+                "spend": round(d["spend"], 2),
+                "revenue": round(d["revenue"], 2),
+                "roas": round(d["revenue"] / d["spend"], 2) if d["spend"] > 0 else 0,
+                "conversions": int(d["conversions"]),
+                "clicks": int(d["clicks"]),
+                "impressions": int(d["impressions"]),
+            })
+        result[str(cid)] = points
+    return result
 
 
 _GA4_EMPTY = {
@@ -94,6 +131,7 @@ _GA4_EMPTY = {
     "engagementRate": 0,
     "avgSessionSec": 0,
     "conversions": 0,
+    "transactions": 0,
     "revenue": 0,
     "topChannels": [],
     "devices": [],
@@ -269,6 +307,8 @@ def get_dashboard_full(
     # --- clarity (aggregated from synced friction rows; zeros until Phase 4) ---
     clarity = {
         "totalSessions": 0,
+        "users": 0,
+        "performanceScore": 0,
         "deadClickRate": 0,
         "rageClickRate": 0,
         "bounceRate": 0,
@@ -317,8 +357,20 @@ def get_dashboard_full(
             total_sessions = sum(p["sessions"] for p in pages)
             total_dead = sum(p["deadClicks"] for p in pages)
             total_rage = sum(p["rageClicks"] for p in pages)
+            total_users = sum(
+                sum(f.users or 0 for f in f_rows) for f_rows in by_url.values()
+            )
+            perf_scores = [
+                f.performance_score
+                for f_rows in by_url.values()
+                for f in f_rows
+                if f.performance_score is not None
+            ]
+            avg_perf = round(sum(perf_scores) / len(perf_scores), 1) if perf_scores else 0
             clarity = {
                 "totalSessions": total_sessions,
+                "users": total_users,
+                "performanceScore": avg_perf,
                 "deadClickRate": round(total_dead / total_sessions * 100, 1)
                 if total_sessions
                 else 0,
@@ -355,6 +407,7 @@ def get_dashboard_full(
         "trendByPlatform": {
             key: _trend(rows_by_platform[key]) for key in PLATFORM_KEYS
         },
+        "trendByCampaign": _trend_by_campaign(rows, campaigns),
         "campaigns": campaign_rows,
         "alerts": alerts,
         "locations": location_rows,

@@ -70,6 +70,7 @@ def fetch_ga4_metrics(date_from: date = None, date_to: date = None) -> dict:
                 Metric(name="engagementRate"),
                 Metric(name="averageSessionDuration"),
                 Metric(name="conversions"),
+                Metric(name="transactions"),
                 Metric(name="totalRevenue"),
             ],
         ))
@@ -79,6 +80,7 @@ def fetch_ga4_metrics(date_from: date = None, date_to: date = None) -> dict:
         engagement_rate = 0.0
         avg_session_sec = 0
         conversions = 0
+        transactions = 0
         revenue = 0.0
 
         if kpi_resp.rows:
@@ -88,7 +90,8 @@ def fetch_ga4_metrics(date_from: date = None, date_to: date = None) -> dict:
             engagement_rate = round(float(v[2].value or 0) * 100, 1)
             avg_session_sec = int(float(v[3].value or 0))
             conversions = int(float(v[4].value or 0))
-            revenue = round(float(v[5].value or 0), 2)
+            transactions = int(float(v[5].value or 0))
+            revenue = round(float(v[6].value or 0), 2)
 
         # --- Traffic channels ---
         ch_resp = client.run_report(RunReportRequest(
@@ -190,6 +193,7 @@ def fetch_ga4_metrics(date_from: date = None, date_to: date = None) -> dict:
             "engagementRate": engagement_rate,
             "avgSessionSec": avg_session_sec,
             "conversions": conversions,
+            "transactions": transactions,
             "revenue": revenue,
             "topChannels": channels,
             "devices": devices,

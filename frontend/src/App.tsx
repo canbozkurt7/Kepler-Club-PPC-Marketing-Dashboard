@@ -13,7 +13,7 @@ type TabKey = "overview" | "google" | "meta" | "yandex" | "ga4" | "clarity";
 const TABS: { key: TabKey; label: string; dot?: string }[] = [
   { key: "overview", label: "Overview" },
   { key: "google", label: "Google Ads", dot: "#4285F4" },
-  { key: "meta", label: "Meta Ads", dot: "#0081FB" },
+  { key: "meta", label: "Meta Ads", dot: "#1B3A6B" },
   { key: "yandex", label: "Yandex Ads", dot: "#FC3F1D" },
   { key: "ga4", label: "GA4", dot: "#F9AB00" },
   { key: "clarity", label: "Clarity", dot: "#10b5b2" },

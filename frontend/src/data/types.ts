@@ -19,6 +19,8 @@ export interface TrendPoint {
   revenue: number;
   roas: number;
   conversions: number;
+  clicks?: number;
+  impressions?: number;
 }
 
 export interface CampaignRow {
@@ -60,6 +62,7 @@ export interface Ga4Snapshot {
   engagementRate: number;
   avgSessionSec: number;
   conversions: number;
+  transactions: number;
   revenue: number;
   topChannels: { channel: string; sessions: number; conversions: number; revenue: number }[];
   devices: { device: string; sessions: number; conversions: number; revenue: number }[];
@@ -78,6 +81,8 @@ export interface ClarityPageRow {
 
 export interface ClaritySnapshot {
   totalSessions: number;
+  users: number;
+  performanceScore: number;
   deadClickRate: number;
   rageClickRate: number;
   bounceRate: number;
@@ -93,6 +98,7 @@ export interface DashboardData {
   kpis: Record<PlatformKey | "blended", Kpis>;
   trend: TrendPoint[];
   trendByPlatform: Record<PlatformKey, TrendPoint[]>;
+  trendByCampaign: Record<string, TrendPoint[]>;
   campaigns: CampaignRow[];
   alerts: AlertItem[];
   locations: LocationSummary[];

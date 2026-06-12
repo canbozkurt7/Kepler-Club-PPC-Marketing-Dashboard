@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { DashboardData, LocationCode } from "../data/types";
 import {
   Card,
@@ -9,7 +10,11 @@ import {
   money,
   num,
 } from "../components/ui";
-import { SpendRoasChart } from "../components/TrendChart";
+import {
+  NetRevenueChart,
+  ConversionTrendChart,
+  CtrImpressionsChart,
+} from "../components/TrendChart";
 
 export function Overview({
   data,
@@ -19,9 +24,20 @@ export function Overview({
   location: LocationCode;
 }) {
   const k = data.kpis.blended;
+  const [selectedCampaign, setSelectedCampaign] = useState<string>("ALL");
+
   const campaigns = data.campaigns
     .filter((c) => location === "ALL" || c.location === location)
     .sort((a, b) => b.spend - a.spend);
+
+  // Campaign options for the dropdown (filtered by location)
+  const campaignOptions = campaigns.map((c) => ({ id: c.id, name: c.name }));
+
+  // Active trend: blended if ALL selected, per-campaign otherwise
+  const activeTrend =
+    selectedCampaign === "ALL"
+      ? data.trend
+      : (data.trendByCampaign?.[selectedCampaign] ?? data.trend);
 
   const platforms = (["google", "meta", "yandex"] as const).map((p) => ({
     key: p,
@@ -42,14 +58,50 @@ export function Overview({
         <KpiCard label="Blended CPA" value={money(k.cpa)} />
       </div>
 
-      <div className="section section-grid grid-2-1">
-        <Card
-          title="Spend vs ROAS"
-          sub="All platforms blended · selected period · TRY"
-        >
-          <SpendRoasChart data={data.trend} />
-        </Card>
+      {/* Campaign selector for charts */}
+      <div className="section" style={{ paddingBottom: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+          <span style={{ fontSize: 12, color: "var(--ink-secondary)", fontWeight: 500 }}>
+            Chart view:
+          </span>
+          <select
+            value={selectedCampaign}
+            onChange={(e) => setSelectedCampaign(e.target.value)}
+            style={{
+              fontSize: 12,
+              padding: "4px 10px",
+              borderRadius: 6,
+              border: "1px solid var(--border)",
+              background: "var(--canvas)",
+              color: "var(--ink)",
+              cursor: "pointer",
+            }}
+          >
+            <option value="ALL">All campaigns blended</option>
+            {campaignOptions.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
+      {/* 3-chart grid */}
+      <div className="section section-grid" style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+        <Card title="Net Revenue vs Conv. Value" sub="Daily · TRY">
+          <NetRevenueChart data={activeTrend} />
+        </Card>
+        <Card title="Conversions" sub="Daily count">
+          <ConversionTrendChart data={activeTrend} />
+        </Card>
+        <Card title="CTR & Impressions" sub="CTR % (right) · Impressions (left)">
+          <CtrImpressionsChart data={activeTrend} />
+        </Card>
+      </div>
+
+      {/* Alerts */}
+      <div className="section">
         <Card title="Active alerts" sub="Rule engine · email + dashboard">
           {data.alerts.length === 0 ? (
             <div className="empty" style={{ padding: "24px 8px" }}>
@@ -156,7 +208,7 @@ export function Overview({
       <div className="section">
         <Card
           title="Top campaigns"
-          sub={`${campaigns.length} campaigns · sorted by spend`}
+          sub={`${campaigns.length} campaigns · click headers to sort`}
         >
           <CampaignTable rows={campaigns} />
         </Card>
