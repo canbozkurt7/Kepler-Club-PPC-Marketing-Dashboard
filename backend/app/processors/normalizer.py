@@ -78,26 +78,38 @@ class DataNormalizer:
         return normalized
 
     def _convert_spend_to_eur(self, record: Dict[str, Any], platform: str) -> float:
-        """Convert spend to EUR based on platform currency."""
+        """Convert spend to the dashboard's display currency (TRY for this account)."""
         spend = float(record.get("spend_eur") or record.get("spend") or 0)
 
         if platform == "google":
-            return spend  # Already in EUR
+            return spend  # Google account is TRY — pass through
         elif platform == "meta":
-            return spend * self.usd_to_eur  # USD to EUR
+            currency = record.get("account_currency", "USD").upper()
+            if currency == "TRY":
+                return spend  # Meta account is also TRY — pass through
+            elif currency == "EUR":
+                return spend
+            else:
+                return spend * self.usd_to_eur  # USD → EUR fallback
         elif platform == "yandex":
             return spend * self.rub_to_eur  # RUB to EUR
         else:
             return spend
 
     def _convert_conversion_value_to_eur(self, record: Dict[str, Any], platform: str) -> float:
-        """Convert conversion value to EUR based on platform currency."""
+        """Convert conversion value to the dashboard's display currency."""
         value = float(record.get("conversion_value_eur") or record.get("conversion_value") or 0)
 
         if platform == "google":
-            return value  # Already in EUR
+            return value  # Already in TRY
         elif platform == "meta":
-            return value * self.usd_to_eur  # USD to EUR
+            currency = record.get("account_currency", "USD").upper()
+            if currency == "TRY":
+                return value
+            elif currency == "EUR":
+                return value
+            else:
+                return value * self.usd_to_eur
         elif platform == "yandex":
             return 0.0  # Yandex doesn't provide conversion value
         else:

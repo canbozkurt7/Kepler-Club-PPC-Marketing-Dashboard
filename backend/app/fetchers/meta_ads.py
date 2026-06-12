@@ -62,6 +62,18 @@ def fetch_meta_metrics(
     if date_from is None:
         date_from = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
 
+    # Detect account currency so the normalizer can skip conversion for TRY
+    account_currency = "USD"
+    try:
+        with httpx.Client(timeout=10) as client:
+            cur_resp = client.get(
+                f"{GRAPH_URL}/act_{account_id}",
+                params={"access_token": access_token, "fields": "currency"},
+            )
+            account_currency = cur_resp.json().get("currency", "USD")
+    except Exception:
+        pass
+
     params = {
         "access_token": access_token,
         "fields": (
@@ -104,6 +116,7 @@ def fetch_meta_metrics(
                         "conversions": int(conversions),
                         "conversion_value": conv_value,
                         "platform": "meta",
+                        "account_currency": account_currency,
                     })
 
                 # Follow pagination
