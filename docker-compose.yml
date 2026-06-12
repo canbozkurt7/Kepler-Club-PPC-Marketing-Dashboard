@@ -18,7 +18,13 @@ services:
       GOOGLE_ADS_CUSTOMER_ID: ${GOOGLE_ADS_CUSTOMER_ID:-}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      CLARITY_API_TOKEN: ${CLARITY_API_TOKEN:-}
+      CLARITY_PROJECT_ID: ${CLARITY_PROJECT_ID:-}
+      CLARITY_API_KEY: ${CLARITY_API_KEY:-}
+      GA4_PROPERTY_ID: ${GA4_PROPERTY_ID:-}
+      GA4_REFRESH_TOKEN: ${GA4_REFRESH_TOKEN:-}
+      GA4_CLIENT_ID: ${GA4_CLIENT_ID:-}
+      GA4_CLIENT_SECRET: ${GA4_CLIENT_SECRET:-}
+      GA4_SERVICE_ACCOUNT_JSON: ${GA4_SERVICE_ACCOUNT_JSON:-}
     depends_on:
       - redis
     # Database is Supabase (external) — no local postgres container needed
