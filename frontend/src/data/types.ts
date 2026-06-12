@@ -60,7 +60,11 @@ export interface Ga4Snapshot {
   engagementRate: number;
   avgSessionSec: number;
   conversions: number;
-  topChannels: { channel: string; sessions: number; conversions: number }[];
+  revenue: number;
+  topChannels: { channel: string; sessions: number; conversions: number; revenue: number }[];
+  devices: { device: string; sessions: number; conversions: number; revenue: number }[];
+  countries: { country: string; sessions: number; conversions: number }[];
+  pages: { title: string; sessions: number; conversions: number; revenue: number }[];
 }
 
 export interface ClarityPageRow {

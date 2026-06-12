@@ -18,6 +18,7 @@ from ...database import get_db
 from ...models import Campaign, DailyMetrics, Location, Platform
 from ...models.alert_history import AlertHistory
 from ...models.clarity_metrics import ClarityFrictionMetrics
+from ...fetchers.ga4 import fetch_ga4_metrics
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["dashboard"])
@@ -85,6 +86,32 @@ def _trend(rows: List[DailyMetrics]) -> List[Dict[str, Any]]:
             }
         )
     return points
+
+
+_GA4_EMPTY = {
+    "sessions": 0,
+    "engagedSessions": 0,
+    "engagementRate": 0,
+    "avgSessionSec": 0,
+    "conversions": 0,
+    "revenue": 0,
+    "topChannels": [],
+    "devices": [],
+    "countries": [],
+    "pages": [],
+}
+
+
+def _build_ga4(from_date, to_date) -> Dict[str, Any]:
+    try:
+        result = fetch_ga4_metrics(date_from=from_date, date_to=to_date)
+        if "error" in result:
+            logger.warning(f"GA4 fetch error: {result['error']}")
+            return _GA4_EMPTY
+        return result
+    except Exception:
+        logger.exception("GA4 fetch failed")
+        return _GA4_EMPTY
 
 
 @router.get("/dashboard/full")
@@ -331,14 +358,6 @@ def get_dashboard_full(
         "campaigns": campaign_rows,
         "alerts": alerts,
         "locations": location_rows,
-        # GA4 integration lands in Phase 4 — zeros keep the tab honest until then
-        "ga4": {
-            "sessions": 0,
-            "engagedSessions": 0,
-            "engagementRate": 0,
-            "avgSessionSec": 0,
-            "conversions": 0,
-            "topChannels": [],
-        },
+        "ga4": _build_ga4(from_date, to_date),
         "clarity": clarity,
     }
