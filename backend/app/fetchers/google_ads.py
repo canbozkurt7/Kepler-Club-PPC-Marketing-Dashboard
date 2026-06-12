@@ -42,16 +42,20 @@ class GoogleAdsClientWrapper:
     def fetch_metrics_by_date(
         self, customer_id: str, start_date: str, end_date: str
     ) -> List[Dict[str, Any]]:
-        """
-        Fetch campaign/ad group metrics for a date range.
-        Returns list of dicts with normalized structure.
+        """Fetch campaign/ad group metrics for a date range.
+
+        Runs two queries:
+        1. ad_group-level for Search/Display/Shopping (standard campaigns)
+        2. campaign-level for Performance Max (no ad groups)
         """
         if not self.client:
             raise RuntimeError("Not authenticated. Call authenticate() first.")
 
         ga_service = self.client.get_service("GoogleAdsService")
+        metrics_list = []
 
-        query = f"""
+        # --- Standard campaigns (have ad groups) ---
+        query_standard = f"""
             SELECT
                 campaign.id,
                 campaign.name,
@@ -65,48 +69,69 @@ class GoogleAdsClientWrapper:
                 segments.date
             FROM ad_group
             WHERE segments.date BETWEEN '{start_date}' AND '{end_date}'
+              AND campaign.advertising_channel_type != 'PERFORMANCE_MAX'
             ORDER BY segments.date DESC
         """
 
-        metrics_list = []
         try:
-            response = ga_service.search_stream(customer_id=customer_id, query=query)
-
-            for batch in response:
+            for batch in ga_service.search_stream(customer_id=customer_id, query=query_standard):
                 for row in batch.results:
-                    metric_date = row.segments.date
-                    campaign_id = row.campaign.id
-                    campaign_name = row.campaign.name
-                    ad_group_id = row.ad_group.id
-                    ad_group_name = row.ad_group.name
-                    impressions = row.metrics.impressions
-                    clicks = row.metrics.clicks
-                    cost_eur = row.metrics.cost_micros / 1_000_000  # Convert micros to EUR
-                    conversions = int(row.metrics.conversions)
-                    conversion_value_eur = row.metrics.conversions_value
-
-                    metrics_list.append(
-                        {
-                            "campaign_id": campaign_id,
-                            "campaign_name": campaign_name,
-                            "ad_group_id": ad_group_id,
-                            "ad_group_name": ad_group_name,
-                            "metric_date": metric_date,
-                            "impressions": impressions,
-                            "clicks": clicks,
-                            "spend_eur": cost_eur,
-                            "conversions": conversions,
-                            "conversion_value_eur": conversion_value_eur,
-                            "platform": "google",
-                        }
-                    )
-
-            logger.info(f"Fetched {len(metrics_list)} records from Google Ads")
-            return metrics_list
-
+                    metrics_list.append({
+                        "campaign_id": row.campaign.id,
+                        "campaign_name": row.campaign.name,
+                        "ad_group_id": row.ad_group.id,
+                        "ad_group_name": row.ad_group.name,
+                        "metric_date": row.segments.date,
+                        "impressions": row.metrics.impressions,
+                        "clicks": row.metrics.clicks,
+                        "spend_eur": row.metrics.cost_micros / 1_000_000,
+                        "conversions": int(row.metrics.conversions),
+                        "conversion_value_eur": row.metrics.conversions_value,
+                        "platform": "google",
+                    })
         except Exception as e:
-            logger.error(f"Error fetching Google Ads metrics: {str(e)}")
-            return []
+            logger.error(f"Error fetching standard campaign metrics: {str(e)}")
+
+        # --- Performance Max campaigns (campaign-level only) ---
+        query_pmax = f"""
+            SELECT
+                campaign.id,
+                campaign.name,
+                metrics.impressions,
+                metrics.clicks,
+                metrics.cost_micros,
+                metrics.conversions,
+                metrics.conversions_value,
+                segments.date
+            FROM campaign
+            WHERE segments.date BETWEEN '{start_date}' AND '{end_date}'
+              AND campaign.advertising_channel_type = 'PERFORMANCE_MAX'
+            ORDER BY segments.date DESC
+        """
+
+        try:
+            for batch in ga_service.search_stream(customer_id=customer_id, query=query_pmax):
+                for row in batch.results:
+                    # PMax has no ad groups — use campaign ID as ad group ID
+                    # so the storage layer can create a synthetic "PMax" ad group row.
+                    metrics_list.append({
+                        "campaign_id": row.campaign.id,
+                        "campaign_name": row.campaign.name,
+                        "ad_group_id": f"pmax_{row.campaign.id}",
+                        "ad_group_name": "PMax - Asset Groups",
+                        "metric_date": row.segments.date,
+                        "impressions": row.metrics.impressions,
+                        "clicks": row.metrics.clicks,
+                        "spend_eur": row.metrics.cost_micros / 1_000_000,
+                        "conversions": int(row.metrics.conversions),
+                        "conversion_value_eur": row.metrics.conversions_value,
+                        "platform": "google",
+                    })
+        except Exception as e:
+            logger.error(f"Error fetching PMax campaign metrics: {str(e)}")
+
+        logger.info(f"Fetched {len(metrics_list)} records from Google Ads ({start_date} → {end_date})")
+        return metrics_list
 
     def fetch_yesterday_metrics(self, customer_id: str) -> List[Dict[str, Any]]:
         """Fetch metrics for yesterday."""
