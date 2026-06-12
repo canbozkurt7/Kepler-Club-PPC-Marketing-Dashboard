@@ -32,9 +32,10 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Failed to initialize database: {str(e)}")
 
-    # Hourly platform sync at :00, plus one run 2 minutes after boot so a
-    # fresh deploy doesn't wait up to an hour for its first data.
-    scheduler.add_job(run_hourly_sync, "cron", minute=0, id="hourly_sync")
+    # Platform sync every 15 minutes (:00/:15/:30/:45), plus one run 2 minutes
+    # after boot so a fresh deploy doesn't wait for its first data.
+    # Clarity is internally gated to 4×/day inside run_hourly_sync.
+    scheduler.add_job(run_hourly_sync, "cron", minute="*/15", id="sync_15min")
     scheduler.add_job(
         run_hourly_sync,
         "date",
@@ -42,7 +43,7 @@ async def lifespan(app: FastAPI):
         id="startup_sync",
     )
     scheduler.start()
-    logger.info("Scheduler started: hourly sync at :00 (Europe/Istanbul) + startup sync in 2 min")
+    logger.info("Scheduler started: sync every 15 min (Europe/Istanbul) + startup sync in 2 min")
 
     yield
 

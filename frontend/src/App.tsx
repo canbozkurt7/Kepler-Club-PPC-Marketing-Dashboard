@@ -24,7 +24,7 @@ const LOCATIONS: LocationCode[] = ["ALL", "SAW", "KLIA", "RIX"];
 const PAGE_TITLES: Record<TabKey, { title: string; sub: string }> = {
   overview: {
     title: "Performance Overview",
-    sub: "Blended view across Google, Meta and Yandex · last 30 days",
+    sub: "Blended view across Google, Meta and Yandex · selected period",
   },
   google: { title: "Google Ads", sub: "Search, PMax and display campaigns" },
   meta: { title: "Meta Ads", sub: "Facebook and Instagram campaigns" },
@@ -77,6 +77,24 @@ export default function App() {
       setUpdating(false);
     });
   };
+
+  // Auto-refresh: silently re-fetch the current view every 15 minutes so an
+  // open dashboard keeps up with the backend's sync cadence. Also refreshes
+  // the picker bounds (dataBounds) as new days arrive.
+  useEffect(() => {
+    if (!baseData || baseData.source === "demo" || !range) return;
+    const id = setInterval(() => {
+      const seq = ++requestSeq.current;
+      fetchDashboardRange(range, location).then((d) => {
+        if (seq !== requestSeq.current || !d) return;
+        setViewData(d);
+        setBaseData((prev) =>
+          prev ? { ...prev, dataBounds: d.dataBounds } : prev
+        );
+      });
+    }, 15 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [baseData, range, location]);
 
   const handleRangeChange = (r: DateRange) => {
     setRange(r);

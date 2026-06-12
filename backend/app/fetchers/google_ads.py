@@ -113,6 +113,12 @@ class GoogleAdsClientWrapper:
         yesterday = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
         return self.fetch_metrics_by_date(customer_id, yesterday, yesterday)
 
+    def fetch_recent_metrics(self, customer_id: str) -> List[Dict[str, Any]]:
+        """Fetch yesterday + today — keeps intraday numbers fresh between syncs."""
+        today = datetime.utcnow().strftime("%Y-%m-%d")
+        yesterday = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
+        return self.fetch_metrics_by_date(customer_id, yesterday, today)
+
     def fetch_last_n_days(self, customer_id: str, days: int = 30) -> List[Dict[str, Any]]:
         """Fetch metrics for the last N days."""
         end_date = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")

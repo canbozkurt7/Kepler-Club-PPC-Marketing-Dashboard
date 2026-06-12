@@ -37,9 +37,10 @@ class PlatformSyncer:
             if not client.authenticate():
                 raise Exception("Failed to authenticate with Google Ads")
 
-            # Hourly runs fetch yesterday; backfills fetch a longer window
+            # Regular runs fetch yesterday + today (intraday freshness);
+            # backfills fetch a longer window
             if days <= 1:
-                raw_data = client.fetch_yesterday_metrics(customer_id)
+                raw_data = client.fetch_recent_metrics(customer_id)
             else:
                 raw_data = client.fetch_last_n_days(customer_id, days=days)
 
@@ -304,9 +305,11 @@ def run_hourly_sync(days: int = 1):
         syncer = PlatformSyncer(db)
         syncer.sync_google_ads(settings.google_ads_customer_id, days=days)
 
-        # Clarity Data Export API allows only 10 requests/day, so sync
-        # friction metrics every 6 hours instead of hourly.
-        if days > 1 or datetime.now().hour % 6 == 0:
+        # Clarity Data Export API allows only 10 requests/day. The sync job
+        # now runs every 15 minutes, so gate Clarity to the first run of
+        # every 6th hour (00:00, 06:00, 12:00, 18:00) → 4 requests/day.
+        now = datetime.now()
+        if days > 1 or (now.hour % 6 == 0 and now.minute < 15):
             syncer.sync_clarity(days=days)
 
         # TODO: Add Meta Ads sync (Phase 2)

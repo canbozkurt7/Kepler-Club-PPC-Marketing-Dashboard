@@ -32,32 +32,14 @@ export function Overview({
   return (
     <>
       <div className="kpi-grid">
-        <KpiCard
-          hero
-          label="Blended ROAS"
-          value={`${k.roas.toFixed(2)}x`}
-          delta={{ value: "4.2%", direction: "up", goodWhen: "up" }}
-        />
-        <KpiCard
-          label="Total Spend"
-          value={money(k.spend)}
-          delta={{ value: "2.1%", direction: "up", goodWhen: "down" }}
-        />
+        <KpiCard hero label="Blended ROAS" value={`${k.roas.toFixed(2)}x`} />
+        <KpiCard label="Total Spend" value={money(k.spend)} />
         <KpiCard
           label="Conversion Value"
           value={money(convValue(k.spend, k.roas, k.revenue))}
-          delta={{ value: "6.8%", direction: "up", goodWhen: "up" }}
         />
-        <KpiCard
-          label="Conversions"
-          value={num(k.conversions)}
-          delta={{ value: "3.4%", direction: "up", goodWhen: "up" }}
-        />
-        <KpiCard
-          label="Blended CPA"
-          value={money(k.cpa)}
-          delta={{ value: "1.9%", direction: "down", goodWhen: "down" }}
-        />
+        <KpiCard label="Conversions" value={num(k.conversions)} />
+        <KpiCard label="Blended CPA" value={money(k.cpa)} />
       </div>
 
       <div className="section section-grid grid-2-1">
