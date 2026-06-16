@@ -13,17 +13,27 @@ import {
   YandexLogo,
   Ga4Logo,
   ClarityLogo,
+  OverviewLogo,
 } from "./components/Logos";
 
 type TabKey = "overview" | "google" | "meta" | "yandex" | "ga4" | "clarity";
 
-const TABS: { key: TabKey; label: string; dot?: string }[] = [
+const TAB_ICONS: Record<TabKey, (size: number) => JSX.Element> = {
+  overview: (s) => <OverviewLogo size={s} />,
+  google: (s) => <GoogleLogo size={s} />,
+  meta: (s) => <MetaLogo size={s} />,
+  yandex: (s) => <YandexLogo size={s} />,
+  ga4: (s) => <Ga4Logo size={s} />,
+  clarity: (s) => <ClarityLogo size={s} />,
+};
+
+const TABS: { key: TabKey; label: string }[] = [
   { key: "overview", label: "Overview" },
-  { key: "google", label: "Google Ads", dot: "#4285F4" },
-  { key: "meta", label: "Meta Ads", dot: "#1B3A6B" },
-  { key: "yandex", label: "Yandex Ads", dot: "#FC3F1D" },
-  { key: "ga4", label: "GA4", dot: "#F9AB00" },
-  { key: "clarity", label: "Clarity", dot: "#10b5b2" },
+  { key: "google", label: "Google Ads" },
+  { key: "meta", label: "Meta Ads" },
+  { key: "yandex", label: "Yandex Ads" },
+  { key: "ga4", label: "GA4" },
+  { key: "clarity", label: "Clarity" },
 ];
 
 const LOCATIONS: LocationCode[] = ["ALL", "SAW", "KLIA", "RIX"];
@@ -173,7 +183,7 @@ export default function App() {
             className={`tab ${tab === t.key ? "active" : ""}`}
             onClick={() => setTab(t.key)}
           >
-            {t.dot && <span className="tab-dot" style={{ background: t.dot }} />}
+            <span className="tab-logo">{TAB_ICONS[t.key](16)}</span>
             {t.label}
           </button>
         ))}

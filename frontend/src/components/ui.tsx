@@ -29,27 +29,62 @@ export const num = (v: number) => v.toLocaleString("tr-TR");
 export const convValue = (spend: number, roas: number, revenue?: number) =>
   revenue && revenue > 0 ? revenue : spend * roas;
 
+export type KpiDelta = {
+  value: string;
+  direction: "up" | "down";
+  goodWhen: "up" | "down" | "neutral";
+};
+
+/**
+ * Self-baseline delta: current vs the same metric in the prior equal-length
+ * window. `goodWhen` drives the colour (e.g. ROAS up = green, CPA up = red,
+ * spend = neutral grey). Returns undefined when there's no baseline.
+ */
+export function kpiDelta(
+  curr: number,
+  prev: number | undefined,
+  goodWhen: "up" | "down" | "neutral"
+): KpiDelta | undefined {
+  if (prev === undefined || prev === 0 || !isFinite(prev)) return undefined;
+  const pct = ((curr - prev) / prev) * 100;
+  if (!isFinite(pct)) return undefined;
+  return {
+    value: `${Math.abs(pct).toFixed(1)}%`,
+    direction: pct >= 0 ? "up" : "down",
+    goodWhen,
+  };
+}
+
 export function KpiCard({
   label,
   value,
   delta,
   hero,
+  note,
 }: {
   label: string;
   value: string;
-  delta?: { value: string; direction: "up" | "down"; goodWhen: "up" | "down" };
+  delta?: KpiDelta;
   hero?: boolean;
+  note?: string;
 }) {
-  const isGood = delta ? delta.direction === delta.goodWhen : true;
+  const tone = !delta
+    ? ""
+    : delta.goodWhen === "neutral"
+    ? "neutral"
+    : delta.direction === delta.goodWhen
+    ? "up"
+    : "down";
   return (
     <div className={`card kpi ${hero ? "kpi-hero" : ""}`}>
       <div className="kpi-label">{label}</div>
       <div className="kpi-value tnum">{value}</div>
       {delta && (
-        <span className={`kpi-delta ${isGood ? "up" : "down"}`}>
+        <span className={`kpi-delta ${tone}`}>
           {delta.direction === "up" ? "↑" : "↓"} {delta.value} vs prev. period
         </span>
       )}
+      {note && <div className="kpi-note">{note}</div>}
     </div>
   );
 }

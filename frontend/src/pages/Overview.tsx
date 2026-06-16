@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { DashboardData, LocationCode, TrendPoint } from "../data/types";
+import { ExportMenu } from "../components/ExportMenu";
 import {
   Card,
   CampaignTable,
@@ -7,13 +8,16 @@ import {
   PLATFORM_META,
   SeverityPill,
   convValue,
+  kpiDelta,
   money,
   num,
 } from "../components/ui";
+import { INDUSTRY_BENCHMARKS, BENCHMARKS_AS_OF } from "../data/benchmarks";
 import {
   NetRevenueChart,
   ConversionTrendChart,
   CtrImpressionsChart,
+  ConvValuePie,
 } from "../components/TrendChart";
 
 type Granularity = "daily" | "weekly" | "monthly";
@@ -86,10 +90,14 @@ export function Overview({
   location: LocationCode;
 }) {
   const k = data.kpis.blended;
+  const prev = data.previousKpis?.blended;
+  const convNow = convValue(k.spend, k.roas, k.revenue);
+  const convPrev = prev ? convValue(prev.spend, prev.roas, prev.revenue) : undefined;
   // Empty selection = all campaigns blended
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [granularity, setGranularity] = useState<Granularity>("daily");
+  const chartsRef = useRef<HTMLDivElement>(null);
 
   const campaigns = data.campaigns
     .filter((c) => location === "ALL" || c.location === location)
@@ -136,17 +144,52 @@ export function Overview({
     kpis: data.kpis[p],
   }));
 
+  // Conversion-value share by campaign — top 7 + "Others"
+  const convPieData = (() => {
+    const items = campaigns
+      .map((c) => ({
+        name: c.name,
+        value: Math.round(convValue(c.spend, c.roas, c.revenue)),
+      }))
+      .filter((d) => d.value > 0)
+      .sort((a, b) => b.value - a.value);
+    const TOP = 7;
+    if (items.length <= TOP) return items;
+    const others = items.slice(TOP).reduce((s, d) => s + d.value, 0);
+    const top = items.slice(0, TOP);
+    return others > 0 ? [...top, { name: "Others", value: others }] : top;
+  })();
+
   return (
     <>
       <div className="kpi-grid">
-        <KpiCard hero label="Blended ROAS" value={`${k.roas.toFixed(2)}x`} />
-        <KpiCard label="Total Spend" value={money(k.spend)} />
+        <KpiCard
+          hero
+          label="Blended ROAS"
+          value={`${k.roas.toFixed(2)}x`}
+          delta={kpiDelta(k.roas, prev?.roas, "up")}
+          note={`Industry median ~${INDUSTRY_BENCHMARKS.blended.roas}x · ${BENCHMARKS_AS_OF}`}
+        />
+        <KpiCard
+          label="Total Spend"
+          value={money(k.spend)}
+          delta={kpiDelta(k.spend, prev?.spend, "neutral")}
+        />
         <KpiCard
           label="Conversion Value"
-          value={money(convValue(k.spend, k.roas, k.revenue))}
+          value={money(convNow)}
+          delta={kpiDelta(convNow, convPrev, "up")}
         />
-        <KpiCard label="Conversions" value={num(k.conversions)} />
-        <KpiCard label="Blended CPA" value={money(k.cpa)} />
+        <KpiCard
+          label="Conversions"
+          value={num(k.conversions)}
+          delta={kpiDelta(k.conversions, prev?.conversions, "up")}
+        />
+        <KpiCard
+          label="Blended CPA"
+          value={money(k.cpa)}
+          delta={kpiDelta(k.cpa, prev?.cpa, "down")}
+        />
       </div>
 
       {/* Campaign selector + granularity for charts */}
@@ -250,20 +293,33 @@ export function Overview({
               </button>
             ))}
           </div>
+          <ExportMenu targetRef={chartsRef} filename="kepler-overview-charts" />
         </div>
       </div>
 
-      {/* 3-chart grid */}
-      <div className="section section-grid" style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
-        <Card title="Net Revenue vs Conv. Value" sub={`${granularityLabel} · TRY`}>
-          <NetRevenueChart data={activeTrend} />
-        </Card>
-        <Card title="Conversions" sub={`${granularityLabel} count`}>
-          <ConversionTrendChart data={activeTrend} />
-        </Card>
-        <Card title="CTR & Impressions" sub="CTR % (right) · Impressions (left)">
-          <CtrImpressionsChart data={activeTrend} />
-        </Card>
+      <div ref={chartsRef}>
+        {/* 3-chart grid */}
+        <div className="section section-grid" style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+          <Card title="Net Revenue vs Conv. Value" sub={`${granularityLabel} · TRY`}>
+            <NetRevenueChart data={activeTrend} />
+          </Card>
+          <Card title="Conversions" sub={`${granularityLabel} count`}>
+            <ConversionTrendChart data={activeTrend} />
+          </Card>
+          <Card title="CTR & Impressions" sub="CTR % (right) · Impressions (left)">
+            <CtrImpressionsChart data={activeTrend} />
+          </Card>
+        </div>
+
+        {/* Conversion value share by campaign */}
+        <div className="section">
+          <Card
+            title="Conversion value by campaign"
+            sub={`${convPieData.length} segments · selected period · TRY`}
+          >
+            <ConvValuePie data={convPieData} />
+          </Card>
+        </div>
       </div>
 
       {/* Alerts */}

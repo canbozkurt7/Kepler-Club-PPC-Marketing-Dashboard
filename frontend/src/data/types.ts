@@ -96,12 +96,51 @@ export interface ClaritySnapshot {
   pages: ClarityPageRow[];
 }
 
+/** A single search keyword's performance (Google Ads only). */
+export interface KeywordRow {
+  keyword: string;
+  matchType: "EXACT" | "PHRASE" | "BROAD";
+  campaign: string;
+  location: Exclude<LocationCode, "ALL">;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  conversions: number;
+  spend: number;
+  cpa: number;
+  roas: number;
+  qualityScore?: number;
+}
+
+/**
+ * Meta ad creative with the signals needed to spot creative fatigue:
+ * rising frequency + falling CTR + rising CPM as an audience tires of an ad.
+ * `ctrPrev` / `cpmPrev` are the prior-week values for decline detection.
+ */
+export interface MetaCreative {
+  id: string;
+  name: string;
+  campaign: string;
+  location: Exclude<LocationCode, "ALL">;
+  status: "ACTIVE" | "PAUSED";
+  impressions: number;
+  frequency: number;
+  ctr: number;
+  ctrPrev: number;
+  cpm: number;
+  cpmPrev: number;
+  spend: number;
+  daysRunning: number;
+}
+
 export interface DashboardData {
   source: "live" | "demo";
   updatedAt: string;
   /** Full span of synced data (independent of the requested window). */
   dataBounds?: { min: string | null; max: string | null };
   kpis: Record<PlatformKey | "blended", Kpis>;
+  /** Same KPIs for the immediately-preceding equal-length window (self-baseline). */
+  previousKpis?: Record<PlatformKey | "blended", Kpis>;
   trend: TrendPoint[];
   trendByPlatform: Record<PlatformKey, TrendPoint[]>;
   trendByCampaign: Record<string, TrendPoint[]>;
@@ -110,4 +149,8 @@ export interface DashboardData {
   locations: LocationSummary[];
   ga4: Ga4Snapshot;
   clarity: ClaritySnapshot;
+  /** Top search keywords — Google Ads only. */
+  googleKeywords?: KeywordRow[];
+  /** Meta ad creatives with fatigue signals. */
+  metaCreatives?: MetaCreative[];
 }

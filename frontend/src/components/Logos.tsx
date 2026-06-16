@@ -1,24 +1,31 @@
-/** Inline SVG brand marks shown next to page titles. */
+/** Inline SVG brand marks shown next to page titles and nav tabs. */
 
+/**
+ * Google ADS mark — two crossed rounded bars (yellow + blue) forming a peak
+ * with a yellow pivot dot. NOT the generic multicolour Google "G".
+ */
 export function GoogleLogo({ size = 20 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden>
-      <path
-        fill="#EA4335"
-        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
+      <rect
+        x="6.4"
+        y="1.9"
+        width="5.2"
+        height="15.7"
+        rx="2.6"
+        fill="#FBBC04"
+        transform="rotate(22.5 9 9.75)"
       />
-      <path
+      <rect
+        x="12.4"
+        y="1.9"
+        width="5.2"
+        height="15.7"
+        rx="2.6"
         fill="#4285F4"
-        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+        transform="rotate(-22.5 15 9.75)"
       />
-      <path
-        fill="#FBBC05"
-        d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-      />
-      <path
-        fill="#34A853"
-        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-      />
+      <circle cx="7" cy="17.3" r="2.9" fill="#FBBC04" />
     </svg>
   );
 }
@@ -61,14 +68,37 @@ export function Ga4Logo({ size = 20 }: { size?: number }) {
   );
 }
 
+/**
+ * Microsoft Clarity mark — a blue "eye" (Clarity = seeing user behaviour),
+ * not the old teal "C".
+ */
 export function ClarityLogo({ size = 20 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
-      <circle cx="12" cy="12" r="12" fill="#10b5b2" />
+      <defs>
+        <linearGradient id="clarityGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#3BA0FF" />
+          <stop offset="100%" stopColor="#0E5AD6" />
+        </linearGradient>
+      </defs>
+      <circle cx="12" cy="12" r="12" fill="url(#clarityGrad)" />
       <path
         fill="#fff"
-        d="M15.9 15.39a4.8 4.8 0 1 1 .04-6.73l1.93-1.9A7.5 7.5 0 1 0 17.87 17.3l-1.97-1.9z"
+        d="M12 6.6c4 0 6.9 3 7.9 5.4-1 2.4-3.9 5.4-7.9 5.4S5.1 14.4 4.1 12C5.1 9.6 8 6.6 12 6.6z"
       />
+      <circle cx="12" cy="12" r="2.9" fill="#0E5AD6" />
+    </svg>
+  );
+}
+
+/** Neutral dashboard glyph for the Overview tab. */
+export function OverviewLogo({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
+      <rect x="3" y="3" width="8" height="8" rx="2" fill="#4d5fd9" />
+      <rect x="13" y="3" width="8" height="5" rx="2" fill="#94a3b8" />
+      <rect x="13" y="10" width="8" height="11" rx="2" fill="#221c4e" />
+      <rect x="3" y="13" width="8" height="8" rx="2" fill="#94a3b8" />
     </svg>
   );
 }

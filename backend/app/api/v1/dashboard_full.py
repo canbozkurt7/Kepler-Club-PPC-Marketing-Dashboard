@@ -152,6 +152,32 @@ def _build_ga4(from_date, to_date) -> Dict[str, Any]:
         return _GA4_EMPTY
 
 
+def _build_google_keywords(from_date, to_date) -> List[Dict[str, Any]]:
+    """Top Google Ads keywords — best-effort, [] on any failure."""
+    try:
+        from ...fetchers.google_ads import fetch_google_keywords
+
+        return fetch_google_keywords(
+            date_from=from_date.isoformat(), date_to=to_date.isoformat()
+        )
+    except Exception:
+        logger.exception("Google keyword fetch failed")
+        return []
+
+
+def _build_meta_creatives(from_date, to_date) -> List[Dict[str, Any]]:
+    """Meta ad creatives with fatigue signals — best-effort, [] on any failure."""
+    try:
+        from ...fetchers.meta_ads import fetch_meta_creatives
+
+        return fetch_meta_creatives(
+            date_from=from_date.isoformat(), date_to=to_date.isoformat()
+        )
+    except Exception:
+        logger.exception("Meta creative fetch failed")
+        return []
+
+
 @router.get("/dashboard/full")
 def get_dashboard_full(
     date_from: Optional[str] = Query(None, description="YYYY-MM-DD, default 365 days ago"),
@@ -215,6 +241,24 @@ def get_dashboard_full(
         key = platforms.get(r.platform_id)
         if key in rows_by_platform:
             rows_by_platform[key].append(r)
+
+    # --- previous (self-baseline) window: the equal-length span immediately
+    # before the selected one, so the UI can show "vs prev. period" deltas. ---
+    window_days = (to_date - from_date).days
+    prev_to = from_date - timedelta(days=1)
+    prev_from = prev_to - timedelta(days=window_days)
+    prev_query = db.query(DailyMetrics).filter(
+        DailyMetrics.metric_date >= prev_from,
+        DailyMetrics.metric_date <= prev_to,
+    )
+    if loc_filter_id is not None:
+        prev_query = prev_query.filter(DailyMetrics.location_id == loc_filter_id)
+    prev_rows: List[DailyMetrics] = prev_query.all()
+    prev_by_platform: Dict[str, List[DailyMetrics]] = {k: [] for k in PLATFORM_KEYS}
+    for r in prev_rows:
+        key = platforms.get(r.platform_id)
+        if key in prev_by_platform:
+            prev_by_platform[key].append(r)
 
     # --- campaigns ---
     by_campaign: Dict[int, List[DailyMetrics]] = defaultdict(list)
@@ -403,6 +447,10 @@ def get_dashboard_full(
             "blended": _kpis(rows),
             **{key: _kpis(rows_by_platform[key]) for key in PLATFORM_KEYS},
         },
+        "previousKpis": {
+            "blended": _kpis(prev_rows),
+            **{key: _kpis(prev_by_platform[key]) for key in PLATFORM_KEYS},
+        },
         "trend": _trend(rows),
         "trendByPlatform": {
             key: _trend(rows_by_platform[key]) for key in PLATFORM_KEYS
@@ -413,4 +461,6 @@ def get_dashboard_full(
         "locations": location_rows,
         "ga4": _build_ga4(from_date, to_date),
         "clarity": clarity,
+        "googleKeywords": _build_google_keywords(from_date, to_date),
+        "metaCreatives": _build_meta_creatives(from_date, to_date),
     }

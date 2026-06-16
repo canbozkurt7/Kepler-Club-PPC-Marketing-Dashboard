@@ -5,10 +5,14 @@ import {
   KpiCard,
   PLATFORM_META,
   convValue,
+  kpiDelta,
   money,
   num,
 } from "../components/ui";
 import { MiniAreaChart, SpendRoasChart } from "../components/TrendChart";
+import { INDUSTRY_BENCHMARKS, BENCHMARKS_AS_OF } from "../data/benchmarks";
+import { KeywordTable } from "../components/KeywordTable";
+import { CreativeFatigue } from "../components/CreativeFatigue";
 
 const PHASE_NOTE: Partial<Record<PlatformKey, string>> = {
   yandex:
@@ -26,6 +30,10 @@ export function PlatformPage({
 }) {
   const meta = PLATFORM_META[platform];
   const k = data.kpis[platform];
+  const prev = data.previousKpis?.[platform];
+  const convNow = convValue(k.spend, k.roas, k.revenue);
+  const convPrev = prev ? convValue(prev.spend, prev.roas, prev.revenue) : undefined;
+  const bench = INDUSTRY_BENCHMARKS[platform];
   const trend = data.trendByPlatform[platform];
   const campaigns = data.campaigns
     .filter((c) => c.platform === platform)
@@ -46,15 +54,39 @@ export function PlatformPage({
       )}
 
       <div className="kpi-grid">
-        <KpiCard hero label={`${meta.label} ROAS`} value={`${k.roas.toFixed(2)}x`} />
-        <KpiCard label="Spend" value={money(k.spend)} />
+        <KpiCard
+          hero
+          label={`${meta.label} ROAS`}
+          value={`${k.roas.toFixed(2)}x`}
+          delta={kpiDelta(k.roas, prev?.roas, "up")}
+          note={`Industry median ~${bench.roas}x · ${BENCHMARKS_AS_OF}`}
+        />
+        <KpiCard
+          label="Spend"
+          value={money(k.spend)}
+          delta={kpiDelta(k.spend, prev?.spend, "neutral")}
+        />
         <KpiCard
           label="Conversion Value"
-          value={money(convValue(k.spend, k.roas, k.revenue))}
+          value={money(convNow)}
+          delta={kpiDelta(convNow, convPrev, "up")}
         />
-        <KpiCard label="Conversions" value={num(k.conversions)} />
-        <KpiCard label="CPA" value={money(k.cpa)} />
-        <KpiCard label="CTR" value={`${k.ctr.toFixed(1)}%`} />
+        <KpiCard
+          label="Conversions"
+          value={num(k.conversions)}
+          delta={kpiDelta(k.conversions, prev?.conversions, "up")}
+        />
+        <KpiCard
+          label="CPA"
+          value={money(k.cpa)}
+          delta={kpiDelta(k.cpa, prev?.cpa, "down")}
+        />
+        <KpiCard
+          label="CTR"
+          value={`${k.ctr.toFixed(1)}%`}
+          delta={kpiDelta(k.ctr, prev?.ctr, "up")}
+          note={`Industry median ~${bench.ctr}%`}
+        />
       </div>
 
       <div className="section section-grid grid-2-1">
@@ -74,6 +106,18 @@ export function PlatformPage({
           <CampaignTable rows={campaigns} showPlatform={false} />
         </Card>
       </div>
+
+      {platform === "google" && (
+        <div className="section">
+          <KeywordTable rows={data.googleKeywords ?? []} location={location} />
+        </div>
+      )}
+
+      {platform === "meta" && (
+        <div className="section">
+          <CreativeFatigue rows={data.metaCreatives ?? []} location={location} />
+        </div>
+      )}
     </>
   );
 }

@@ -2,8 +2,11 @@
   Area,
   AreaChart,
   CartesianGrid,
+  Cell,
   Line,
   ComposedChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -11,6 +14,68 @@
   Legend,
 } from "recharts";
 import type { TrendPoint } from "../data/types";
+
+const PIE_COLORS = [
+  "#4d5fd9",
+  "#221c4e",
+  "#22c55e",
+  "#f59e0b",
+  "#10b5b2",
+  "#ec4899",
+  "#8b5cf6",
+  "#94a3b8",
+];
+
+/** Donut of conversion-value share by campaign (or any name/value series). */
+export function ConvValuePie({
+  data,
+}: {
+  data: { name: string; value: number }[];
+}) {
+  const total = data.reduce((s, d) => s + d.value, 0) || 1;
+  return (
+    <ResponsiveContainer width="100%" height={280}>
+      <PieChart>
+        <Pie
+          data={data}
+          dataKey="value"
+          nameKey="name"
+          cx="42%"
+          cy="50%"
+          innerRadius={58}
+          outerRadius={100}
+          paddingAngle={1.5}
+          stroke="var(--canvas, #fff)"
+          strokeWidth={2}
+        >
+          {data.map((_, i) => (
+            <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+          ))}
+        </Pie>
+        <Tooltip
+          contentStyle={{
+            borderRadius: 8,
+            border: "1px solid #e4e4e4",
+            boxShadow: "rgba(0,55,112,0.08) 0 8px 24px",
+            fontSize: 12,
+            fontFamily: "Inter, sans-serif",
+          }}
+          formatter={(value: number, name: string) => [
+            `₺${value.toLocaleString("tr-TR")} · ${((value / total) * 100).toFixed(1)}%`,
+            name,
+          ]}
+        />
+        <Legend
+          layout="vertical"
+          align="right"
+          verticalAlign="middle"
+          iconSize={9}
+          wrapperStyle={{ fontSize: 11, lineHeight: "18px" }}
+        />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+}
 
 const tickStyle = { fontSize: 11, fill: "#837ca2", fontWeight: 300 };
 

@@ -2,6 +2,8 @@ import type {
   CampaignRow,
   DashboardData,
   Kpis,
+  KeywordRow,
+  MetaCreative,
   PlatformKey,
   TrendPoint,
 } from "./types";
@@ -113,6 +115,30 @@ blended.cpa = +(blended.spend / blended.conversions).toFixed(2);
 blended.ctr = +((blended.clicks / blended.impressions) * 100).toFixed(2);
 blended.cpc = +(blended.spend / blended.clicks).toFixed(2);
 
+/**
+ * Build a plausible "previous period" KPI block from the current one so the
+ * self-baseline deltas render. Per-metric factors create a mix of up/down
+ * arrows (current period is mostly an improvement over the prior one).
+ */
+function prevKpis(k: Kpis): Kpis {
+  const spend = +(k.spend * 0.94).toFixed(2);
+  const revenue = +(k.revenue * 0.86).toFixed(2);
+  const conversions = Math.round(k.conversions * 0.9);
+  const clicks = Math.round(k.clicks * 0.96);
+  const impressions = Math.round(k.impressions * 1.03);
+  return {
+    spend,
+    revenue,
+    conversions,
+    clicks,
+    impressions,
+    roas: spend > 0 ? +(revenue / spend).toFixed(2) : 0,
+    cpa: conversions > 0 ? +(spend / conversions).toFixed(2) : 0,
+    ctr: impressions > 0 ? +((clicks / impressions) * 100).toFixed(2) : 0,
+    cpc: clicks > 0 ? +(spend / clicks).toFixed(2) : 0,
+  };
+}
+
 function c(
   id: string,
   name: string,
@@ -175,10 +201,105 @@ const campaignTrends: Record<string, TrendPoint[]> = {
   y3: buildTrend({ spend: 11, roas: 6.4, ctr: 5.4, cpc: 0.28 }, 112),
 };
 
+// --- Google Ads keyword performance (Google page only) ---
+function kw(
+  keyword: string,
+  matchType: KeywordRow["matchType"],
+  campaign: string,
+  location: KeywordRow["location"],
+  impressions: number,
+  ctr: number,
+  cpc: number,
+  roas: number,
+  qualityScore: number
+): KeywordRow {
+  const clicks = Math.round(impressions * (ctr / 100));
+  const spend = +(clicks * cpc).toFixed(2);
+  const revenue = spend * roas;
+  const conversions = Math.max(1, Math.round(revenue / 95));
+  return {
+    keyword,
+    matchType,
+    campaign,
+    location,
+    impressions,
+    clicks,
+    ctr,
+    conversions,
+    spend,
+    cpa: +(spend / conversions).toFixed(2),
+    roas,
+    qualityScore,
+  };
+}
+
+const googleKeywords: KeywordRow[] = [
+  kw("airport lounge istanbul", "EXACT", "SAW - Search Global", "SAW", 48200, 11.4, 0.39, 16.2, 9),
+  kw("saw lounge access", "PHRASE", "SAW - Search Global", "SAW", 29800, 9.8, 0.41, 13.7, 8),
+  kw("sabiha gokcen lounge", "EXACT", "SAW - Search Lounge", "SAW", 21400, 8.6, 0.37, 12.1, 9),
+  kw("kul airport lounge", "PHRASE", "KUL - Search Global", "KLIA", 18600, 7.9, 0.44, 6.4, 7),
+  kw("klia lounge day pass", "EXACT", "KUL - Search Global", "KLIA", 12300, 8.2, 0.42, 7.1, 8),
+  kw("riga airport lounge", "PHRASE", "RIX - Search Global", "RIX", 9800, 8.8, 0.34, 9.2, 8),
+  kw("priority pass riga", "BROAD", "RIX - Search Global", "RIX", 14200, 4.1, 0.52, 3.8, 5),
+  kw("lounge near me", "BROAD", "SAW - Search Global", "SAW", 38100, 2.7, 0.61, 2.4, 4),
+  kw("business class lounge", "PHRASE", "SAW - Search Lounge", "SAW", 16700, 5.3, 0.48, 5.9, 6),
+  kw("cheap airport lounge", "BROAD", "KUL - Search Global", "KLIA", 22400, 3.2, 0.58, 1.9, 4),
+];
+
+// --- Meta ad creatives with fatigue signals ---
+function creative(
+  id: string,
+  name: string,
+  campaign: string,
+  location: MetaCreative["location"],
+  impressions: number,
+  frequency: number,
+  ctr: number,
+  ctrPrev: number,
+  cpm: number,
+  cpmPrev: number,
+  daysRunning: number,
+  status: MetaCreative["status"] = "ACTIVE"
+): MetaCreative {
+  const spend = +((impressions / 1000) * cpm).toFixed(2);
+  return {
+    id,
+    name,
+    campaign,
+    location,
+    status,
+    impressions,
+    frequency,
+    ctr,
+    ctrPrev,
+    cpm,
+    cpmPrev,
+    spend,
+    daysRunning,
+  };
+}
+
+const metaCreatives: MetaCreative[] = [
+  creative("cr1", "Reels — Lounge Tour v1", "SAW - Prospecting Reels", "SAW", 412000, 4.8, 1.1, 2.4, 142, 96, 38),
+  creative("cr2", "Static — Comfort Promo", "SAW - Prospecting Reels", "SAW", 286000, 3.6, 1.6, 2.1, 118, 92, 27),
+  creative("cr3", "Carousel — 3 Lounges", "SAW - Retargeting 14d", "SAW", 198000, 5.2, 1.4, 1.5, 96, 88, 31),
+  creative("cr4", "Reels — KLIA Day Pass", "KUL - Prospecting Interests", "KLIA", 154000, 2.1, 1.9, 1.8, 104, 101, 12),
+  creative("cr5", "Story — Riga Quick Hit", "RIX - Retargeting 30d", "RIX", 88000, 1.6, 2.7, 2.6, 82, 80, 8),
+  creative("cr6", "Static — Family Bundle", "SAW - Prospecting Reels", "SAW", 121000, 2.8, 2.2, 2.3, 110, 108, 15),
+];
+
 export const demoData: DashboardData = {
   source: "demo",
   updatedAt: new Date().toISOString(),
   kpis: { blended, google, meta, yandex },
+  previousKpis: {
+    blended: prevKpis(blended),
+    google: prevKpis(google),
+    meta: prevKpis(meta),
+    yandex: prevKpis(yandex),
+  },
+  googleKeywords,
+  metaCreatives,
   trend: blendedTrend,
   trendByPlatform: {
     google: googleTrend,

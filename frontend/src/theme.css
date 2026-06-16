@@ -167,6 +167,19 @@ body {
   border-radius: 50%;
 }
 
+.tab-logo {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+  opacity: 0.78;
+  transition: opacity 0.15s;
+}
+
+.tab:hover .tab-logo,
+.tab.active .tab-logo {
+  opacity: 1;
+}
+
 /* ---------- Page ---------- */
 
 .page {
@@ -363,6 +376,22 @@ body {
 .kpi-delta.down {
   color: var(--negative);
   background: var(--negative-soft);
+}
+
+.kpi-delta.neutral {
+  color: var(--ink-mute);
+  background: var(--surface-2, rgba(130, 124, 162, 0.1));
+}
+
+.kpi-note {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--ink-mute);
+  font-weight: 400;
+}
+
+.kpi-hero .kpi-note {
+  color: var(--primary-subdued);
 }
 
 .kpi-hero {

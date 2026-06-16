@@ -136,3 +136,104 @@ def fetch_meta_metrics(
     except Exception as e:
         logger.error(f"Meta Ads fetch failed: {e}")
         return []
+
+
+# Campaign-name prefix → location code (KUL maps to KLIA).
+_META_LOCATION = {"SAW": "SAW", "KUL": "KLIA", "KLIA": "KLIA", "RIX": "RIX"}
+
+
+def _meta_location(name: str) -> str:
+    prefix = (name or "").strip().split()[0].upper() if name else ""
+    return _META_LOCATION.get(prefix, "SAW")
+
+
+def _meta_ad_insights(
+    client: httpx.Client, account_id: str, access_token: str, since: str, until: str
+) -> List[Dict[str, Any]]:
+    """One row per ad over [since, until] — window-level ctr/cpm/frequency."""
+    params: Dict[str, Any] = {
+        "access_token": access_token,
+        "fields": "ad_id,ad_name,campaign_name,impressions,clicks,spend,frequency,ctr,cpm",
+        "level": "ad",
+        "time_range": f'{{"since":"{since}","until":"{until}"}}',
+        "limit": 200,
+    }
+    url: Optional[str] = f"{GRAPH_URL}/act_{account_id}/insights"
+    rows: List[Dict[str, Any]] = []
+    while url:
+        resp = client.get(url, params=params)
+        resp.raise_for_status()
+        body = resp.json()
+        if "error" in body:
+            logger.error(f"Meta creative insights error: {body['error']}")
+            break
+        rows.extend(body.get("data", []))
+        url = body.get("paging", {}).get("next")
+        params = {}
+    return rows
+
+
+def fetch_meta_creatives(
+    date_from: str, date_to: str, top_n: int = 30
+) -> List[Dict[str, Any]]:
+    """Ad-level creatives with fatigue signals (frequency + CTR/CPM vs the prior
+    equal-length window), mapped to the frontend MetaCreative shape. [] on any
+    failure or when credentials are missing.
+    """
+    access_token = os.getenv("META_ACCESS_TOKEN")
+    account_id = os.getenv("META_AD_ACCOUNT_ID")
+    if not access_token or not account_id:
+        return []
+
+    try:
+        d_from = datetime.strptime(date_from, "%Y-%m-%d").date()
+        d_to = datetime.strptime(date_to, "%Y-%m-%d").date()
+    except ValueError:
+        return []
+
+    window_days = (d_to - d_from).days
+    prev_to = d_from - timedelta(days=1)
+    prev_from = prev_to - timedelta(days=window_days)
+
+    out: List[Dict[str, Any]] = []
+    try:
+        with httpx.Client(timeout=30) as client:
+            cur = _meta_ad_insights(client, account_id, access_token, date_from, date_to)
+            prev = _meta_ad_insights(
+                client, account_id, access_token, prev_from.isoformat(), prev_to.isoformat()
+            )
+
+        prev_by_ad = {
+            r.get("ad_id"): {
+                "ctr": float(r.get("ctr") or 0),
+                "cpm": float(r.get("cpm") or 0),
+            }
+            for r in prev
+        }
+
+        for r in cur:
+            ad_id = r.get("ad_id")
+            ctr = float(r.get("ctr") or 0)
+            cpm = float(r.get("cpm") or 0)
+            p = prev_by_ad.get(ad_id, {"ctr": ctr, "cpm": cpm})
+            out.append({
+                "id": ad_id,
+                "name": r.get("ad_name", ""),
+                "campaign": r.get("campaign_name", ""),
+                "location": _meta_location(r.get("campaign_name", "")),
+                "status": "ACTIVE",
+                "impressions": int(r.get("impressions") or 0),
+                "frequency": round(float(r.get("frequency") or 0), 2),
+                "ctr": round(ctr, 2),
+                "ctrPrev": round(p["ctr"], 2),
+                "cpm": round(cpm, 2),
+                "cpmPrev": round(p["cpm"], 2),
+                "spend": round(float(r.get("spend") or 0), 2),
+                "daysRunning": window_days + 1,
+            })
+    except Exception as e:
+        logger.error(f"Meta creative fetch failed: {e}")
+        return []
+
+    out.sort(key=lambda x: x["impressions"], reverse=True)
+    return out[:top_n]
