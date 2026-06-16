@@ -7,6 +7,7 @@ metrics yet, which makes the frontend fall back to its demo dataset.
 
 import logging
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
@@ -436,6 +437,18 @@ def get_dashboard_full(
         func.min(DailyMetrics.metric_date), func.max(DailyMetrics.metric_date)
     ).first()
 
+    # The three live upstream fetches (GA4, Google keywords, Meta creatives)
+    # are independent of the DB and of each other. Run them concurrently so
+    # the endpoint's wall-clock is the slowest single fetch, not their sum —
+    # this is what keeps the payload under the frontend's request timeout.
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        ga4_future = pool.submit(_build_ga4, from_date, to_date)
+        keywords_future = pool.submit(_build_google_keywords, from_date, to_date)
+        creatives_future = pool.submit(_build_meta_creatives, from_date, to_date)
+        ga4_data = ga4_future.result()
+        google_keywords = keywords_future.result()
+        meta_creatives = creatives_future.result()
+
     return {
         "source": "live",
         "updatedAt": datetime.utcnow().isoformat() + "Z",
@@ -459,8 +472,8 @@ def get_dashboard_full(
         "campaigns": campaign_rows,
         "alerts": alerts,
         "locations": location_rows,
-        "ga4": _build_ga4(from_date, to_date),
+        "ga4": ga4_data,
         "clarity": clarity,
-        "googleKeywords": _build_google_keywords(from_date, to_date),
-        "metaCreatives": _build_meta_creatives(from_date, to_date),
+        "googleKeywords": google_keywords,
+        "metaCreatives": meta_creatives,
     }

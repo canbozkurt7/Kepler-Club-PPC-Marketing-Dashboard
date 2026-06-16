@@ -31,8 +31,12 @@ function endpointUrl(range?: ApiRange, location?: string): string {
 }
 
 async function fetchLive(range?: ApiRange, location?: string): Promise<DashboardData> {
+  // The full payload triggers several live upstream fetches (GA4, Google
+  // keywords, Meta creatives). Even parallelised these can take ~5-12s on a
+  // cold load, so the timeout must comfortably clear that to avoid falling
+  // back to demo data on a perfectly healthy backend.
   const res = await fetch(endpointUrl(range, location), {
-    signal: AbortSignal.timeout(8000),
+    signal: AbortSignal.timeout(20000),
   });
   if (!res.ok) throw new Error(`API ${res.status}`);
   const data = (await res.json()) as DashboardData;
