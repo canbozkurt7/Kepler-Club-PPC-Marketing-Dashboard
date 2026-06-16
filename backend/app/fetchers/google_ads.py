@@ -8,6 +8,20 @@ from ..config import settings
 
 logger = logging.getLogger(__name__)
 
+# KeywordMatchType enum values — used to resolve the match type whether the
+# client returns a proto-plus enum (has .name) or a raw int.
+_MATCH_TYPE_NAMES = {0: "UNSPECIFIED", 1: "UNKNOWN", 2: "EXACT", 3: "PHRASE", 4: "BROAD"}
+
+
+def _match_type_name(mt: Any) -> str:
+    name = getattr(mt, "name", None)
+    if name:
+        return name
+    try:
+        return _MATCH_TYPE_NAMES.get(int(mt), "BROAD")
+    except (TypeError, ValueError):
+        return "BROAD"
+
 
 class GoogleAdsClientWrapper:
     """Wrapper for Google Ads API with data fetching capabilities."""
@@ -166,7 +180,7 @@ class GoogleAdsClientWrapper:
                     rows.append({
                         "campaign_name": row.campaign.name,
                         "keyword": row.ad_group_criterion.keyword.text,
-                        "match_type": row.ad_group_criterion.keyword.match_type.name,
+                        "match_type": _match_type_name(row.ad_group_criterion.keyword.match_type),
                         "quality_score": row.ad_group_criterion.quality_info.quality_score,
                         "impressions": row.metrics.impressions,
                         "clicks": row.metrics.clicks,
