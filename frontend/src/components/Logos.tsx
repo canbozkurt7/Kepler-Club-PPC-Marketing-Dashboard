@@ -69,24 +69,34 @@ export function Ga4Logo({ size = 20 }: { size?: number }) {
 }
 
 /**
- * Microsoft Clarity mark — a blue "eye" (Clarity = seeing user behaviour),
- * not the old teal "C".
+ * Microsoft Clarity mark — the faceted blue pyramid (light top-left face,
+ * medium right face, dark front-bottom facet).
  */
 export function ClarityLogo({ size = 20 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
       <defs>
-        <linearGradient id="clarityGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#3BA0FF" />
-          <stop offset="100%" stopColor="#0E5AD6" />
+        <linearGradient id="clLeft" x1="0" y1="0" x2="0.6" y2="1">
+          <stop offset="0%" stopColor="#7FB8F6" />
+          <stop offset="100%" stopColor="#3F8DEA" />
         </linearGradient>
+        <linearGradient id="clRight" x1="0.3" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#3A86E8" />
+          <stop offset="100%" stopColor="#1C5DC6" />
+        </linearGradient>
+        <linearGradient id="clBottom" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#1A55BC" />
+          <stop offset="100%" stopColor="#123F95" />
+        </linearGradient>
+        <clipPath id="clTri">
+          <path d="M11.1 3.1 Q12 2 12.9 3.1 L21.2 20 Q21.7 21 20.5 21 L3.5 21 Q2.3 21 2.8 20 Z" />
+        </clipPath>
       </defs>
-      <circle cx="12" cy="12" r="12" fill="url(#clarityGrad)" />
-      <path
-        fill="#fff"
-        d="M12 6.6c4 0 6.9 3 7.9 5.4-1 2.4-3.9 5.4-7.9 5.4S5.1 14.4 4.1 12C5.1 9.6 8 6.6 12 6.6z"
-      />
-      <circle cx="12" cy="12" r="2.9" fill="#0E5AD6" />
+      <g clipPath="url(#clTri)">
+        <polygon points="12,2.5 12,21 2,21" fill="url(#clLeft)" />
+        <polygon points="12,2.5 22,21 12,21" fill="url(#clRight)" />
+        <polygon points="2,21 22,21 12,13.5" fill="url(#clBottom)" />
+      </g>
     </svg>
   );
 }
