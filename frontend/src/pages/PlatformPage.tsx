@@ -13,6 +13,7 @@ import { MiniAreaChart, SpendRoasChart } from "../components/TrendChart";
 import { INDUSTRY_BENCHMARKS, BENCHMARKS_AS_OF } from "../data/benchmarks";
 import { KeywordTable } from "../components/KeywordTable";
 import { CreativeFatigue } from "../components/CreativeFatigue";
+import { demoData } from "../data/demo";
 
 const PHASE_NOTE: Partial<Record<PlatformKey, string>> = {
   yandex:
@@ -31,18 +32,25 @@ export function PlatformPage({
   location: LocationCode;
 }) {
   const meta = PLATFORM_META[platform];
-  const k = data.kpis[platform];
-  const prev = data.previousKpis?.[platform];
+  // Microsoft Ads has no live data source yet — always render the demo slice
+  // as a clearly-labelled placeholder so the page looks populated like the
+  // other platforms instead of showing zeros on the live dashboard.
+  const src = platform === "microsoft" ? demoData : data;
+  const k = src.kpis[platform];
+  const prev = src.previousKpis?.[platform];
   const convNow = convValue(k.spend, k.roas, k.revenue);
   const convPrev = prev ? convValue(prev.spend, prev.roas, prev.revenue) : undefined;
   const bench = INDUSTRY_BENCHMARKS[platform];
-  const trend = data.trendByPlatform[platform];
-  const campaigns = data.campaigns
+  const trend = src.trendByPlatform[platform];
+  const campaigns = src.campaigns
     .filter((c) => c.platform === platform)
     .filter((c) => location === "ALL" || c.location === location)
     .sort((a, b) => b.spend - a.spend);
 
-  const note = data.source === "demo" ? PHASE_NOTE[platform] : undefined;
+  const note =
+    platform === "microsoft" || data.source === "demo"
+      ? PHASE_NOTE[platform]
+      : undefined;
 
   return (
     <>
@@ -115,7 +123,7 @@ export function PlatformPage({
             rows={
               (platform === "google"
                 ? data.googleKeywords
-                : data.microsoftKeywords) ?? []
+                : src.microsoftKeywords) ?? []
             }
             location={location}
           />
