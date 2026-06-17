@@ -26,6 +26,8 @@ const PIE_COLORS = [
   "#94a3b8",
 ];
 
+const RADIAN = Math.PI / 180;
+
 /** Donut of conversion-value share by campaign (or any name/value series). */
 export function ConvValuePie({
   data,
@@ -33,6 +35,32 @@ export function ConvValuePie({
   data: { name: string; value: number }[];
 }) {
   const total = data.reduce((s, d) => s + d.value, 0) || 1;
+
+  // Print the campaign name on every slice wide enough to hold it; slivers
+  // (<5%) stay unlabelled and remain legible in the legend on the right.
+  const renderSliceLabel = (props: any) => {
+    const { cx, cy, midAngle, innerRadius, outerRadius, percent, name } = props;
+    if (percent < 0.05) return null;
+    const r = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + r * Math.cos(-midAngle * RADIAN);
+    const y = cy + r * Math.sin(-midAngle * RADIAN);
+    const short = name.length > 12 ? `${name.slice(0, 11)}…` : name;
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="#fff"
+        fontSize={11}
+        fontWeight={600}
+        textAnchor="middle"
+        dominantBaseline="central"
+        style={{ pointerEvents: "none" }}
+      >
+        {short}
+      </text>
+    );
+  };
+
   return (
     <ResponsiveContainer width="100%" height={280}>
       <PieChart>
@@ -47,6 +75,8 @@ export function ConvValuePie({
           paddingAngle={1.5}
           stroke="var(--canvas, #fff)"
           strokeWidth={2}
+          label={renderSliceLabel}
+          labelLine={false}
         >
           {data.map((_, i) => (
             <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
@@ -57,7 +87,7 @@ export function ConvValuePie({
             borderRadius: 8,
             border: "1px solid #e4e4e4",
             boxShadow: "rgba(0,55,112,0.08) 0 8px 24px",
-            fontSize: 12,
+            fontSize: 14,
             fontFamily: "Inter, sans-serif",
           }}
           formatter={(value: number, name: string) => [
@@ -69,8 +99,8 @@ export function ConvValuePie({
           layout="vertical"
           align="right"
           verticalAlign="middle"
-          iconSize={9}
-          wrapperStyle={{ fontSize: 11, lineHeight: "18px" }}
+          iconSize={11}
+          wrapperStyle={{ fontSize: 13, lineHeight: "20px" }}
         />
       </PieChart>
     </ResponsiveContainer>

@@ -19,9 +19,10 @@ try:
         {"name": "google"},
         {"name": "meta"},
         {"name": "yandex"},
+        {"name": "microsoft"},
     ]
     supabase.table("platforms").insert(platforms).execute()
-    print("[OK] 3 platforms inserted")
+    print("[OK] 4 platforms inserted")
 
     # Seed locations
     print("[*] Inserting locations...")

@@ -1,4 +1,4 @@
-export type PlatformKey = "google" | "meta" | "yandex";
+export type PlatformKey = "google" | "meta" | "yandex" | "microsoft";
 export type LocationCode = "ALL" | "SAW" | "KLIA" | "RIX";
 
 export interface Kpis {
@@ -151,6 +151,8 @@ export interface DashboardData {
   clarity: ClaritySnapshot;
   /** Top search keywords — Google Ads only. */
   googleKeywords?: KeywordRow[];
+  /** Top search keywords — Microsoft Ads (Bing) only. */
+  microsoftKeywords?: KeywordRow[];
   /** Meta ad creatives with fatigue signals. */
   metaCreatives?: MetaCreative[];
 }

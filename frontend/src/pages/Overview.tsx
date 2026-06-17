@@ -138,7 +138,7 @@ export function Overview({
   const granularityLabel =
     granularity === "daily" ? "Daily" : granularity === "weekly" ? "Weekly" : "Monthly";
 
-  const platforms = (["google", "meta", "yandex"] as const).map((p) => ({
+  const platforms = (["google", "meta", "yandex", "microsoft"] as const).map((p) => ({
     key: p,
     ...PLATFORM_META[p],
     kpis: data.kpis[p],

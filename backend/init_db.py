@@ -31,6 +31,7 @@ def seed_platforms():
             Platform(name="google"),
             Platform(name="meta"),
             Platform(name="yandex"),
+            Platform(name="microsoft"),
         ]
 
         for plat in platforms:

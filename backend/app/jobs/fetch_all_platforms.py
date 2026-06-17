@@ -6,6 +6,7 @@ from ..database import SessionLocal
 from ..fetchers.google_ads import GoogleAdsClientWrapper
 from ..fetchers.clarity import fetch_clarity_metrics
 from ..fetchers.meta_ads import fetch_meta_metrics
+from ..fetchers.yandex_ads import fetch_yandex_metrics
 from ..processors.normalizer import DataNormalizer
 from ..processors.enricher import DataEnricher
 from ..processors.segmenter import CampaignSegmenter
@@ -251,6 +252,55 @@ class PlatformSyncer:
         finally:
             self.db.commit()
 
+    def sync_yandex_ads(self, days: int = 1) -> bool:
+        """Fetch and store Yandex Direct data. No-op without a token."""
+        if not os.getenv("YANDEX_API_TOKEN"):
+            logger.warning("Skipping Yandex Ads sync — YANDEX_API_TOKEN not set")
+            return False
+
+        sync_log = SyncLog(
+            platform_id=3,  # yandex
+            sync_type="yandex_ads",
+            sync_status="RUNNING",
+            started_at=datetime.utcnow(),
+        )
+        self.db.add(sync_log)
+        self.db.commit()
+
+        try:
+            if days <= 1:
+                date_to = datetime.utcnow().strftime("%Y-%m-%d")
+                date_from = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
+            else:
+                date_to = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
+                date_from = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
+
+            raw_data = fetch_yandex_metrics(date_from=date_from, date_to=date_to)
+            normalized = self.normalizer.normalize_metrics(raw_data, "yandex")
+            enriched = self.enricher.enrich_records(normalized)
+            segmented = CampaignSegmenter.segment_records(enriched)
+            records_stored = self._store_metrics(segmented, "yandex")
+
+            sync_log.sync_status = "SUCCESS"
+            sync_log.records_processed = records_stored
+            sync_log.completed_at = datetime.utcnow()
+            sync_log.sync_duration_sec = (
+                sync_log.completed_at - sync_log.started_at
+            ).total_seconds()
+
+            logger.info(f"Yandex Ads sync completed: {records_stored} records")
+            return True
+
+        except Exception as e:
+            sync_log.sync_status = "FAILED"
+            sync_log.error_message = str(e)
+            sync_log.completed_at = datetime.utcnow()
+            logger.error(f"Yandex Ads sync failed: {str(e)}")
+            return False
+
+        finally:
+            self.db.commit()
+
     def sync_clarity(self, days: int = 1) -> bool:
         """Fetch site-wide Clarity friction metrics and upsert today's row.
 
@@ -356,6 +406,7 @@ def run_hourly_sync(days: int = 1):
         syncer = PlatformSyncer(db)
         syncer.sync_google_ads(settings.google_ads_customer_id, days=days)
         syncer.sync_meta_ads(days=days)
+        syncer.sync_yandex_ads(days=days)
 
         # Clarity Data Export API allows only 10 requests/day. The sync job
         # now runs every 15 minutes, so gate Clarity to the first run of
@@ -363,9 +414,6 @@ def run_hourly_sync(days: int = 1):
         now = datetime.now()
         if days > 1 or (now.hour % 6 == 0 and now.minute < 15):
             syncer.sync_clarity(days=days)
-
-        # TODO: Add Meta Ads sync (Phase 2)
-        # TODO: Add Yandex Ads sync (Phase 2)
 
         logger.info("Sync completed")
 

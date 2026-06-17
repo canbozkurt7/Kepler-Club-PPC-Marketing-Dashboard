@@ -46,6 +46,7 @@ export function deriveForRange(base: DashboardData, range: DateRange): Dashboard
     google: base.trendByPlatform.google.filter((p) => inRange(p.date)),
     meta: base.trendByPlatform.meta.filter((p) => inRange(p.date)),
     yandex: base.trendByPlatform.yandex.filter((p) => inRange(p.date)),
+    microsoft: base.trendByPlatform.microsoft.filter((p) => inRange(p.date)),
   };
 
   const trendByCampaign: Record<string, TrendPoint[]> = {};
@@ -63,6 +64,7 @@ export function deriveForRange(base: DashboardData, range: DateRange): Dashboard
       google: kpisFromTrend(base.kpis.google, platformTrends.google, base.kpis.google.spend),
       meta: kpisFromTrend(base.kpis.meta, platformTrends.meta, base.kpis.meta.spend),
       yandex: kpisFromTrend(base.kpis.yandex, platformTrends.yandex, base.kpis.yandex.spend),
+      microsoft: kpisFromTrend(base.kpis.microsoft, platformTrends.microsoft, base.kpis.microsoft.spend),
     },
     campaigns: base.campaigns.map((c) => {
       const spend = +(c.spend * frac).toFixed(0);

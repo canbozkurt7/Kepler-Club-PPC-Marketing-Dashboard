@@ -19,4 +19,5 @@ export const INDUSTRY_BENCHMARKS: Record<
   google: { roas: 3.31, ctr: 3.17 },
   meta: { roas: 2.3, ctr: 1.5 },
   yandex: { roas: 2.1, ctr: 4.8 },
+  microsoft: { roas: 2.7, ctr: 2.8 },
 };

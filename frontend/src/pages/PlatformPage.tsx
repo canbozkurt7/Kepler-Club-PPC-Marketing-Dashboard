@@ -16,7 +16,9 @@ import { CreativeFatigue } from "../components/CreativeFatigue";
 
 const PHASE_NOTE: Partial<Record<PlatformKey, string>> = {
   yandex:
-    "Yandex Direct sync (with RUB→EUR conversion) ships in Phase 2 — numbers below are demo data.",
+    "Yandex Direct sync is wired — live numbers appear once the API token is set on the server. Showing demo data for now.",
+  microsoft:
+    "Microsoft Advertising (Bing) is not connected to a live data source yet — numbers below are demo data.",
 };
 
 export function PlatformPage({
@@ -107,9 +109,16 @@ export function PlatformPage({
         </Card>
       </div>
 
-      {platform === "google" && (
+      {(platform === "google" || platform === "microsoft") && (
         <div className="section">
-          <KeywordTable rows={data.googleKeywords ?? []} location={location} />
+          <KeywordTable
+            rows={
+              (platform === "google"
+                ? data.googleKeywords
+                : data.microsoftKeywords) ?? []
+            }
+            location={location}
+          />
         </div>
       )}
 

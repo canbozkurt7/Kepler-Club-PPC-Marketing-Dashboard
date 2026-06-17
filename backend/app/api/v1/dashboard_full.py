@@ -24,7 +24,7 @@ from ...fetchers.ga4 import fetch_ga4_metrics
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["dashboard"])
 
-PLATFORM_KEYS = ("google", "meta", "yandex")
+PLATFORM_KEYS = ("google", "meta", "yandex", "microsoft")
 
 CITY_BY_CODE = {
     "SAW": "Istanbul",

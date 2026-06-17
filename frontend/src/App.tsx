@@ -11,18 +11,20 @@ import {
   GoogleLogo,
   MetaLogo,
   YandexLogo,
+  MicrosoftLogo,
   Ga4Logo,
   ClarityLogo,
   OverviewLogo,
 } from "./components/Logos";
 
-type TabKey = "overview" | "google" | "meta" | "yandex" | "ga4" | "clarity";
+type TabKey = "overview" | "google" | "meta" | "yandex" | "microsoft" | "ga4" | "clarity";
 
 const TAB_ICONS: Record<TabKey, (size: number) => JSX.Element> = {
   overview: (s) => <OverviewLogo size={s} />,
   google: (s) => <GoogleLogo size={s} />,
   meta: (s) => <MetaLogo size={s} />,
   yandex: (s) => <YandexLogo size={s} />,
+  microsoft: (s) => <MicrosoftLogo size={s} />,
   ga4: (s) => <Ga4Logo size={s} />,
   clarity: (s) => <ClarityLogo size={s} />,
 };
@@ -32,6 +34,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "google", label: "Google Ads" },
   { key: "meta", label: "Meta Ads" },
   { key: "yandex", label: "Yandex Ads" },
+  { key: "microsoft", label: "Microsoft Ads" },
   { key: "ga4", label: "GA4" },
   { key: "clarity", label: "Clarity" },
 ];
@@ -42,6 +45,7 @@ const PAGE_LOGOS: Partial<Record<TabKey, JSX.Element>> = {
   google: <GoogleLogo size={22} />,
   meta: <MetaLogo size={22} />,
   yandex: <YandexLogo size={22} />,
+  microsoft: <MicrosoftLogo size={22} />,
   ga4: <Ga4Logo size={22} />,
   clarity: <ClarityLogo size={22} />,
 };
@@ -54,6 +58,7 @@ const PAGE_TITLES: Record<TabKey, { title: string; sub: string }> = {
   google: { title: "Google Ads", sub: "Search, PMax and display campaigns" },
   meta: { title: "Meta Ads", sub: "Facebook and Instagram campaigns" },
   yandex: { title: "Yandex Ads", sub: "Yandex Direct campaigns · RUB converted to TRY" },
+  microsoft: { title: "Microsoft Ads", sub: "Bing Search and Audience campaigns" },
   ga4: { title: "Google Analytics 4", sub: "Site traffic, engagement and conversions" },
   clarity: { title: "Microsoft Clarity", sub: "UX friction signals correlated with ad spend" },
 };
@@ -234,6 +239,9 @@ export default function App() {
           )}
           {tab === "yandex" && (
             <PlatformPage platform="yandex" data={viewData} location={location} />
+          )}
+          {tab === "microsoft" && (
+            <PlatformPage platform="microsoft" data={viewData} location={location} />
           )}
           {tab === "ga4" && <Ga4Page data={viewData} />}
           {tab === "clarity" && <ClarityPage data={viewData} />}

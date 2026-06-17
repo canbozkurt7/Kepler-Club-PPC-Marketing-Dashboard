@@ -8,6 +8,7 @@ export const PLATFORM_META: Record<
   google: { label: "Google Ads", color: "#4285F4" },
   meta: { label: "Meta Ads", color: "#1B3A6B" },
   yandex: { label: "Yandex Ads", color: "#FC3F1D" },
+  microsoft: { label: "Microsoft Ads", color: "#00A4EF" },
 };
 
 export const money = (v: number) =>

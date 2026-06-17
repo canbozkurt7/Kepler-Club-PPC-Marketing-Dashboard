@@ -101,6 +101,21 @@ export function ClarityLogo({ size = 20 }: { size?: number }) {
   );
 }
 
+/**
+ * Microsoft Advertising mark — the four-square Microsoft logo
+ * (red / green / blue / yellow quadrants).
+ */
+export function MicrosoftLogo({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
+      <rect x="2" y="2" width="9" height="9" fill="#F25022" />
+      <rect x="13" y="2" width="9" height="9" fill="#7FBA00" />
+      <rect x="2" y="13" width="9" height="9" fill="#00A4EF" />
+      <rect x="13" y="13" width="9" height="9" fill="#FFB900" />
+    </svg>
+  );
+}
+
 /** Neutral dashboard glyph for the Overview tab. */
 export function OverviewLogo({ size = 20 }: { size?: number }) {
   return (

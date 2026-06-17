@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS sync_logs (
 );
 
 -- Seed data: Platforms
-INSERT INTO platforms (name) VALUES ('google'), ('meta'), ('yandex')
+INSERT INTO platforms (name) VALUES ('google'), ('meta'), ('yandex'), ('microsoft')
 ON CONFLICT DO NOTHING;
 
 -- Seed data: Locations

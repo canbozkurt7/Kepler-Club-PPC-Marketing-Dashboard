@@ -79,32 +79,34 @@ function kpisFromTrend(trend: TrendPoint[], ctr: number, cpc: number): Kpis {
 const googleTrend = buildTrend({ spend: 410, roas: 10.4, ctr: 8.4, cpc: 0.42 }, 7);
 const metaTrend = buildTrend({ spend: 165, roas: 5.6, ctr: 2.1, cpc: 0.61 }, 21);
 const yandexTrend = buildTrend({ spend: 70, roas: 7.1, ctr: 5.2, cpc: 0.28 }, 42);
+const microsoftTrend = buildTrend({ spend: 95, roas: 6.2, ctr: 3.1, cpc: 0.36 }, 63);
 
 const google = kpisFromTrend(googleTrend, 8.4, 0.42);
 const meta = kpisFromTrend(metaTrend, 2.1, 0.61);
 const yandex = kpisFromTrend(yandexTrend, 5.2, 0.28);
+const microsoft = kpisFromTrend(microsoftTrend, 3.1, 0.36);
 
 const blendedTrend: TrendPoint[] = googleTrend.map((p, i) => {
-  const spend = p.spend + metaTrend[i].spend + yandexTrend[i].spend;
-  const revenue = p.revenue + metaTrend[i].revenue + yandexTrend[i].revenue;
+  const spend = p.spend + metaTrend[i].spend + yandexTrend[i].spend + microsoftTrend[i].spend;
+  const revenue = p.revenue + metaTrend[i].revenue + yandexTrend[i].revenue + microsoftTrend[i].revenue;
   return {
     date: p.date,
     spend,
     revenue,
     roas: +(revenue / spend).toFixed(2),
     conversions:
-      p.conversions + metaTrend[i].conversions + yandexTrend[i].conversions,
-    clicks: (p.clicks ?? 0) + (metaTrend[i].clicks ?? 0) + (yandexTrend[i].clicks ?? 0),
-    impressions: (p.impressions ?? 0) + (metaTrend[i].impressions ?? 0) + (yandexTrend[i].impressions ?? 0),
+      p.conversions + metaTrend[i].conversions + yandexTrend[i].conversions + microsoftTrend[i].conversions,
+    clicks: (p.clicks ?? 0) + (metaTrend[i].clicks ?? 0) + (yandexTrend[i].clicks ?? 0) + (microsoftTrend[i].clicks ?? 0),
+    impressions: (p.impressions ?? 0) + (metaTrend[i].impressions ?? 0) + (yandexTrend[i].impressions ?? 0) + (microsoftTrend[i].impressions ?? 0),
   };
 });
 
 const blended: Kpis = {
-  spend: google.spend + meta.spend + yandex.spend,
-  revenue: google.revenue + meta.revenue + yandex.revenue,
-  conversions: google.conversions + meta.conversions + yandex.conversions,
-  clicks: google.clicks + meta.clicks + yandex.clicks,
-  impressions: google.impressions + meta.impressions + yandex.impressions,
+  spend: google.spend + meta.spend + yandex.spend + microsoft.spend,
+  revenue: google.revenue + meta.revenue + yandex.revenue + microsoft.revenue,
+  conversions: google.conversions + meta.conversions + yandex.conversions + microsoft.conversions,
+  clicks: google.clicks + meta.clicks + yandex.clicks + microsoft.clicks,
+  impressions: google.impressions + meta.impressions + yandex.impressions + microsoft.impressions,
   roas: 0,
   cpa: 0,
   ctr: 0,
@@ -183,6 +185,9 @@ const campaigns: CampaignRow[] = [
   c("y1", "SAW - Search RU", "yandex", "SAW", 1310, 7.8, 6.1),
   c("y2", "SAW - Display RU", "yandex", "SAW", 480, 4.9, 1.2),
   c("y3", "RIX - Search RU", "yandex", "RIX", 320, 6.4, 5.4),
+  c("b1", "SAW - Bing Search", "microsoft", "SAW", 540, 6.8, 3.4),
+  c("b2", "KUL - Bing Search", "microsoft", "KLIA", 260, 5.1, 2.9),
+  c("b3", "RIX - Bing Search", "microsoft", "RIX", 150, 5.9, 3.6),
 ];
 
 // Per-campaign trends keyed by campaign id (matches campaigns array above)
@@ -199,6 +204,9 @@ const campaignTrends: Record<string, TrendPoint[]> = {
   y1: buildTrend({ spend: 44, roas: 7.8, ctr: 6.1, cpc: 0.28 }, 110),
   y2: buildTrend({ spend: 16, roas: 4.9, ctr: 1.2, cpc: 0.28 }, 111),
   y3: buildTrend({ spend: 11, roas: 6.4, ctr: 5.4, cpc: 0.28 }, 112),
+  b1: buildTrend({ spend: 18, roas: 6.8, ctr: 3.4, cpc: 0.36 }, 113),
+  b2: buildTrend({ spend: 9, roas: 5.1, ctr: 2.9, cpc: 0.36 }, 114),
+  b3: buildTrend({ spend: 5, roas: 5.9, ctr: 3.6, cpc: 0.36 }, 115),
 };
 
 // --- Google Ads keyword performance (Google page only) ---
@@ -246,6 +254,16 @@ const googleKeywords: KeywordRow[] = [
   kw("cheap airport lounge", "BROAD", "KUL - Search Global", "KLIA", 22400, 3.2, 0.58, 1.9, 4),
 ];
 
+// --- Microsoft Ads (Bing) keyword performance (Microsoft page only) ---
+const microsoftKeywords: KeywordRow[] = [
+  kw("airport lounge istanbul", "EXACT", "SAW - Bing Search", "SAW", 14200, 9.1, 0.34, 11.8, 8),
+  kw("sabiha gokcen lounge", "PHRASE", "SAW - Bing Search", "SAW", 9800, 7.4, 0.36, 9.2, 7),
+  kw("klia lounge access", "EXACT", "KUL - Bing Search", "KLIA", 6300, 6.8, 0.39, 5.4, 7),
+  kw("riga airport lounge", "PHRASE", "RIX - Bing Search", "RIX", 4100, 7.9, 0.31, 6.7, 8),
+  kw("business lounge day pass", "BROAD", "SAW - Bing Search", "SAW", 11800, 3.1, 0.48, 2.6, 5),
+  kw("priority pass lounge", "BROAD", "KUL - Bing Search", "KLIA", 7400, 2.8, 0.52, 2.1, 4),
+];
+
 // --- Meta ad creatives with fatigue signals ---
 function creative(
   id: string,
@@ -291,20 +309,23 @@ const metaCreatives: MetaCreative[] = [
 export const demoData: DashboardData = {
   source: "demo",
   updatedAt: new Date().toISOString(),
-  kpis: { blended, google, meta, yandex },
+  kpis: { blended, google, meta, yandex, microsoft },
   previousKpis: {
     blended: prevKpis(blended),
     google: prevKpis(google),
     meta: prevKpis(meta),
     yandex: prevKpis(yandex),
+    microsoft: prevKpis(microsoft),
   },
   googleKeywords,
+  microsoftKeywords,
   metaCreatives,
   trend: blendedTrend,
   trendByPlatform: {
     google: googleTrend,
     meta: metaTrend,
     yandex: yandexTrend,
+    microsoft: microsoftTrend,
   },
   trendByCampaign: campaignTrends,
   campaigns,
