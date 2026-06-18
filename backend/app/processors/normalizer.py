@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
@@ -34,7 +35,9 @@ class DataNormalizer:
 
     def __init__(self):
         self.usd_to_eur = 1.1  # Current approximate rate (configurable)
-        self.rub_to_eur = 0.0115  # Current approximate rate
+        # Yandex reports spend in RUB; convert to TRY for display.
+        # Override via YANDEX_RUB_TO_TRY env var when the rate drifts.
+        self.rub_to_try = float(os.getenv("YANDEX_RUB_TO_TRY", "0.37"))
 
     def validate_record(self, record: Dict[str, Any], platform: str) -> bool:
         """Validate that required fields are present."""
@@ -92,7 +95,7 @@ class DataNormalizer:
             else:
                 return spend * self.usd_to_eur  # USD → EUR fallback
         elif platform == "yandex":
-            return spend * self.rub_to_eur  # RUB to EUR
+            return spend * self.rub_to_try  # RUB → TRY
         else:
             return spend
 

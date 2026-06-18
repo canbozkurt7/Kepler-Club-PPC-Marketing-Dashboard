@@ -2,11 +2,15 @@
 """Initialize database using Supabase SDK instead of psycopg2 connection strings."""
 
 import os
+
+from dotenv import load_dotenv
 from supabase import create_client, Client
 
+load_dotenv()
+
 # Supabase credentials
-SUPABASE_URL = "https://iggljsgomjlhnajdeowt.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlnZ2xqc2dvbWpsaG5hamRlb3d0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMyMTQzMTMsImV4cCI6MjA3ODc5MDMxM30.BfD6Zzorx1vU4KZHTSASC9qs0UKBiWYVNYa_KL7WTgk"
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
 
 print("=" * 80)
 print("PPC Marketing Dashboard - Database Initialization (Supabase SDK)")

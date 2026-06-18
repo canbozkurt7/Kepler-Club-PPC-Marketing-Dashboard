@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 """Verify database schema was created successfully."""
 
+import os
+
+from dotenv import load_dotenv
 from supabase import create_client, Client
 
-SUPABASE_URL = "https://iggljsgomjlhnajdeowt.supabase.co"
-SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlnZ2xqc2dvbWpsaG5hamRlb3d0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MzIxNDMxMywiZXhwIjoyMDc4NzkwMzEzfQ.gNpBgbF-awWaqyP9_WTaFuMtUf0Z-yjkOI0runh2ZQM"
+load_dotenv()
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
 print("=" * 80)
 print("Verifying Database Schema")

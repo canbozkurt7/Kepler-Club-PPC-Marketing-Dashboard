@@ -1,10 +1,22 @@
 #!/usr/bin/env python3
 """Seed initial data into database."""
 
+import os
+
+from dotenv import load_dotenv
 from supabase import create_client, Client
 
-SUPABASE_URL = "https://iggljsgomjlhnajdeowt.supabase.co"
-SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlnZ2xqc2dvbWpsaG5hamRlb3d0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MzIxNDMxMywiZXhwIjoyMDc4NzkwMzEzfQ.gNpBgbF-awWaqyP9_WTaFuMtUf0Z-yjkOI0runh2ZQM"
+# Load the same .env the rest of the backend uses (see app/config.py).
+load_dotenv()
+
+try:
+    SUPABASE_URL = os.environ["SUPABASE_URL"]
+    SERVICE_ROLE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+except KeyError as missing:
+    print(f"[ERROR] Missing required environment variable: {missing}")
+    print("Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in backend/.env "
+          "(see .env.example).")
+    exit(1)
 
 print("=" * 80)
 print("Seeding Database")

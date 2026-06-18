@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     # Yandex Ads (Direct API). client_login is only needed for agency tokens.
     yandex_api_token: Optional[str] = None
     yandex_client_login: Optional[str] = None
+    yandex_client_id: Optional[str] = None
+    yandex_client_secret: Optional[str] = None
+    yandex_refresh_token: Optional[str] = None
+    yandex_redirect_uri: Optional[str] = None
+    yandex_rub_to_try: float = 0.37
 
     # SMTP Alerts (required for email alerts, but app boots without them)
     smtp_host: str = "smtp.gmail.com"

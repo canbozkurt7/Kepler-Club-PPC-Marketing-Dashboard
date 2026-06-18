@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 """Initialize PPC Dashboard database schema in Supabase."""
 
+import os
+
+from dotenv import load_dotenv
 from supabase import create_client, Client
 
-SUPABASE_URL = "https://iggljsgomjlhnajdeowt.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlnZ2xqc2dvbWpsaG5hamRlb3d0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMyMTQzMTMsImV4cCI6MjA3ODc5MDMxM30.BfD6Zzorx1vU4KZHTSASC9qs0UKBiWYVNYa_KL7WTgk"
-SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlnZ2xqc2dvbWpsaG5hamRlb3d0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MzIxNDMxMywiZXhwIjoyMDc4NzkwMzEzfQ.gNpBgbF-awWaqyP9_WTaFuMtUf0Z-yjkOI0runh2ZQM"
+load_dotenv()
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
+SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
 # SQL schema for all tables
 SCHEMA = """
