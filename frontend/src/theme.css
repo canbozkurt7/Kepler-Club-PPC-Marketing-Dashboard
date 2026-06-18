@@ -891,6 +891,57 @@ table.data th.num {
   margin-top: 3px;
 }
 
+/* ---------- KPI comparison period selector ---------- */
+
+.kpi-comp-row {
+  display: flex;
+  gap: 4px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.kpi-comp-pill {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-tertiary);
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+  line-height: 1.4;
+}
+
+.kpi-comp-pill:hover {
+  color: var(--ink);
+  border-color: var(--line2);
+}
+
+.kpi-comp-pill.active {
+  background: rgba(110, 128, 255, 0.15);
+  border-color: var(--ac);
+  color: var(--ac);
+}
+
+.kpi-comp-delta {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  margin-top: 6px;
+  color: var(--ink-secondary);
+}
+
+.kpi-comp-delta.pos {
+  color: var(--pos);
+}
+
+.kpi-comp-delta.neg {
+  color: var(--neg);
+}
+
 /* Horizontal scroll for wide tables on small screens */
 .table-scroll {
   overflow-x: auto;

@@ -1,4 +1,6 @@
 import { useId, useState, type ReactNode } from "react";
+
+type CompPeriod = "none" | "7d" | "14d" | "30d";
 import type { AlertItem, CampaignRow, PlatformKey } from "../data/types";
 
 export const PLATFORM_META: Record<
@@ -63,12 +65,14 @@ export function kpiDelta(
  */
 export function Sparkline({
   values,
+  compare,
   color = "var(--ac)",
   area = false,
   height = 40,
   opacity = 1,
 }: {
   values: number[];
+  compare?: number[];
   color?: string;
   area?: boolean;
   height?: number;
@@ -79,21 +83,27 @@ export function Sparkline({
   const w = 120;
   const h = 40;
   const p = 5;
+  // Shared min/max across both series so they render on the same scale
+  const allVals = compare ? [...values, ...compare] : values;
   let mn = Infinity;
   let mx = -Infinity;
-  for (const v of values) {
+  for (const v of allVals) {
     if (v < mn) mn = v;
     if (v > mx) mx = v;
   }
   const rng = mx - mn || 1;
-  const n = values.length;
-  const pts = values.map((v, i) => {
-    const x = (i / (n - 1)) * w;
-    const y = h - p - ((v - mn) / rng) * (h - 2 * p);
-    return `${x.toFixed(1)} ${y.toFixed(1)}`;
-  });
-  const line = pts.map((pt, i) => `${i ? "L" : "M"}${pt}`).join(" ");
+  const toPath = (arr: number[]) => {
+    const n = arr.length;
+    const pts = arr.map((v, i) => {
+      const x = (i / (n - 1)) * w;
+      const y = h - p - ((v - mn) / rng) * (h - 2 * p);
+      return `${x.toFixed(1)} ${y.toFixed(1)}`;
+    });
+    return pts.map((pt, i) => `${i ? "L" : "M"}${pt}`).join(" ");
+  };
+  const line = toPath(values);
   const areaPath = `${line} L ${w} ${h} L 0 ${h} Z`;
+  const compareLine = compare && compare.length >= 2 ? toPath(compare) : null;
   const gid = `spk-${rawId.replace(/:/g, "")}`;
   return (
     <svg
@@ -110,6 +120,17 @@ export function Sparkline({
         </defs>
       )}
       {area && <path d={areaPath} fill={`url(#${gid})`} />}
+      {compareLine && (
+        <path
+          d={compareLine}
+          fill="none"
+          stroke="var(--ink-tertiary, #5e6373)"
+          strokeWidth={1.2}
+          strokeDasharray="4 3"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
       <path
         d={line}
         fill="none"
@@ -130,7 +151,9 @@ export function KpiCard({
   hero,
   note,
   spark,
+  sparkFull,
   sparkArea,
+  sparkAgg = "avg",
 }: {
   label: string;
   value: string;
@@ -138,8 +161,12 @@ export function KpiCard({
   hero?: boolean;
   note?: string;
   spark?: number[];
+  sparkFull?: number[];
   sparkArea?: boolean;
+  sparkAgg?: "avg" | "sum";
 }) {
+  const [compPeriod, setCompPeriod] = useState<CompPeriod>("none");
+
   const tone = !delta
     ? ""
     : delta.goodWhen === "neutral"
@@ -147,7 +174,31 @@ export function KpiCard({
     : delta.direction === delta.goodWhen
     ? "up"
     : "down";
-  const hasSpark = !!(spark && spark.length > 1);
+
+  const displaySpark = sparkFull ?? spark;
+  const hasSpark = !!(displaySpark && displaySpark.length > 1);
+
+  // Comparison slices derived from sparkFull
+  const N = compPeriod === "7d" ? 7 : compPeriod === "14d" ? 14 : compPeriod === "30d" ? 30 : 0;
+  const currentSlice = sparkFull && N > 0 ? sparkFull.slice(-N) : undefined;
+  const prevSlice = sparkFull && N > 0 ? sparkFull.slice(-(N * 2), -N) : undefined;
+  const hasComparison = !!(currentSlice && prevSlice && currentSlice.length === N && prevSlice.length === N);
+
+  const agg = (arr: number[]) =>
+    sparkAgg === "sum"
+      ? arr.reduce((s, v) => s + v, 0)
+      : arr.reduce((s, v) => s + v, 0) / arr.length;
+
+  let compDeltaPct: number | null = null;
+  if (hasComparison && currentSlice && prevSlice) {
+    const cur = agg(currentSlice);
+    const prv = agg(prevSlice);
+    if (prv !== 0) compDeltaPct = ((cur - prv) / Math.abs(prv)) * 100;
+  }
+
+  const sparkValues = hasComparison ? currentSlice! : (displaySpark ?? []);
+  const sparkCompare = hasComparison ? prevSlice! : undefined;
+
   return (
     <div
       className={`card kpi ${hero ? "kpi-hero" : ""} ${hasSpark ? "kpi-spark" : ""}`}
@@ -180,11 +231,30 @@ export function KpiCard({
       {hasSpark && (
         <div className="kpi-spark-wrap">
           <Sparkline
-            values={spark!}
+            values={sparkValues}
+            compare={sparkCompare}
             area={sparkArea}
             opacity={hero ? 1 : 0.7}
             height={hero ? 46 : 36}
           />
+        </div>
+      )}
+      {compDeltaPct !== null && (
+        <div className={`kpi-comp-delta ${compDeltaPct >= 0 ? "pos" : "neg"}`}>
+          {compDeltaPct >= 0 ? "▲" : "▼"} {Math.abs(compDeltaPct).toFixed(1)}% vs prev {compPeriod}
+        </div>
+      )}
+      {sparkFull && (
+        <div className="kpi-comp-row">
+          {(["none", "7d", "14d", "30d"] as const).map((p) => (
+            <button
+              key={p}
+              className={`kpi-comp-pill${compPeriod === p ? " active" : ""}`}
+              onClick={() => setCompPeriod(p)}
+            >
+              {p === "none" ? "—" : p}
+            </button>
+          ))}
         </div>
       )}
     </div>

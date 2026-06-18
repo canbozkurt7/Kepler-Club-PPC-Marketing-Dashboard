@@ -177,26 +177,30 @@ export function Overview({
           value={money(convNow)}
           delta={kpiDelta(convNow, convPrev, "up")}
           note={`vs prev period · ${money(k.spend)} spend`}
-          spark={convSpark}
+          sparkFull={convSpark}
           sparkArea
+          sparkAgg="sum"
         />
         <KpiCard
           label="Blended ROAS"
           value={`${k.roas.toFixed(2)}x`}
           delta={kpiDelta(k.roas, prev?.roas, "up")}
-          spark={roasSpark}
+          sparkFull={roasSpark}
+          sparkAgg="avg"
         />
         <KpiCard
           label="Conversions"
           value={num(k.conversions)}
           delta={kpiDelta(k.conversions, prev?.conversions, "up")}
-          spark={convsSpark}
+          sparkFull={convsSpark}
+          sparkAgg="sum"
         />
         <KpiCard
           label="Blended CPA"
           value={money(k.cpa)}
           delta={kpiDelta(k.cpa, prev?.cpa, "down")}
-          spark={cpaSpark}
+          sparkFull={cpaSpark}
+          sparkAgg="avg"
         />
       </div>
 
