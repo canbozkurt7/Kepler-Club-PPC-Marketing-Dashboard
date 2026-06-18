@@ -1,5 +1,20 @@
 import type { DashboardData } from "../data/types";
 import { Card, KpiCard, num } from "../components/ui";
+import { BookingFunnel } from "../components/BookingFunnel";
+
+// Representative booking-funnel data. Replace with live GA4/GTM funnel events
+// once the booking-step event tracking is configured in Tag Manager.
+// Drop-offs are intentionally non-uniform so the funnel narrows by the actual
+// loss at each step (steep at browsing & payment, gentle on optional upsells).
+const BOOKING_FUNNEL_STEPS = [
+  { label: "Check Availability", value: 10000 }, //  —
+  { label: "Terminal Selection", value: 7000 },  // ↓ 30%
+  { label: "Room Selection", value: 5600 },      // ↓ 20%
+  { label: "Extend Your Stay", value: 4900 },    // ↓ 13%
+  { label: "Add-ons", value: 4500 },             // ↓  8%
+  { label: "Add Payment Info", value: 2900 },    // ↓ 36%
+  { label: "Purchase", value: 2300 },            // ↓ 21%
+];
 
 const moneyEur = (v: number) =>
   "€" + v.toLocaleString("de-DE", { maximumFractionDigits: v >= 1000 ? 0 : 2 });
@@ -25,6 +40,18 @@ export function Ga4Page({ data }: { data: DashboardData }) {
         <KpiCard label="Conversions" value={num(g.conversions)} />
         <KpiCard label="Transactions" value={num(g.transactions ?? 0)} />
         <KpiCard label="Revenue" value={moneyEur(g.revenue)} />
+      </div>
+
+      {/* Booking Funnel */}
+      <div className="section">
+        <Card
+          title="Booking Funnel"
+          sub="Representative data · live once GTM booking-step events are configured"
+        >
+          <div style={{ maxWidth: 560, margin: "0 auto" }}>
+            <BookingFunnel data={BOOKING_FUNNEL_STEPS} />
+          </div>
+        </Card>
       </div>
 
       {/* Channels + Devices side by side */}
