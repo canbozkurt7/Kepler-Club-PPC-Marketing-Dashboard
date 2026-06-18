@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import type { AlertItem, CampaignRow, PlatformKey } from "../data/types";
 
 export const PLATFORM_META: Record<
@@ -56,18 +56,89 @@ export function kpiDelta(
   };
 }
 
+/**
+ * Lightweight inline-SVG sparkline (no recharts) — matches the design's
+ * hand-drawn KPI trend lines. Renders a normalised polyline, optionally
+ * filled, into a 120×40 viewBox stretched to the card width.
+ */
+export function Sparkline({
+  values,
+  color = "var(--ac)",
+  area = false,
+  height = 40,
+  opacity = 1,
+}: {
+  values: number[];
+  color?: string;
+  area?: boolean;
+  height?: number;
+  opacity?: number;
+}) {
+  const rawId = useId();
+  if (!values || values.length < 2) return null;
+  const w = 120;
+  const h = 40;
+  const p = 5;
+  let mn = Infinity;
+  let mx = -Infinity;
+  for (const v of values) {
+    if (v < mn) mn = v;
+    if (v > mx) mx = v;
+  }
+  const rng = mx - mn || 1;
+  const n = values.length;
+  const pts = values.map((v, i) => {
+    const x = (i / (n - 1)) * w;
+    const y = h - p - ((v - mn) / rng) * (h - 2 * p);
+    return `${x.toFixed(1)} ${y.toFixed(1)}`;
+  });
+  const line = pts.map((pt, i) => `${i ? "L" : "M"}${pt}`).join(" ");
+  const areaPath = `${line} L ${w} ${h} L 0 ${h} Z`;
+  const gid = `spk-${rawId.replace(/:/g, "")}`;
+  return (
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      preserveAspectRatio="none"
+      style={{ width: "100%", height, display: "block" }}
+    >
+      {area && (
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={color} stopOpacity={0.4} />
+            <stop offset="1" stopColor={color} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+      )}
+      {area && <path d={areaPath} fill={`url(#${gid})`} />}
+      <path
+        d={line}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.6}
+        strokeOpacity={opacity}
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
 export function KpiCard({
   label,
   value,
   delta,
   hero,
   note,
+  spark,
+  sparkArea,
 }: {
   label: string;
   value: string;
   delta?: KpiDelta;
   hero?: boolean;
   note?: string;
+  spark?: number[];
+  sparkArea?: boolean;
 }) {
   const tone = !delta
     ? ""
@@ -76,16 +147,104 @@ export function KpiCard({
     : delta.direction === delta.goodWhen
     ? "up"
     : "down";
+  const hasSpark = !!(spark && spark.length > 1);
   return (
-    <div className={`card kpi ${hero ? "kpi-hero" : ""}`}>
-      <div className="kpi-label">{label}</div>
-      <div className="kpi-value tnum">{value}</div>
-      {delta && (
-        <span className={`kpi-delta ${tone}`}>
-          {delta.direction === "up" ? "↑" : "↓"} {delta.value} vs prev. period
-        </span>
+    <div
+      className={`card kpi ${hero ? "kpi-hero" : ""} ${hasSpark ? "kpi-spark" : ""}`}
+    >
+      <div>
+        <div className="kpi-label">{label}</div>
+        <div className="kpi-value tnum">{value}</div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 9,
+            marginTop: hero ? 11 : 9,
+            flexWrap: "wrap",
+          }}
+        >
+          {delta && (
+            <span className={`kpi-delta ${tone}`} style={{ marginTop: 0 }}>
+              {delta.direction === "up" ? "▲" : "▼"} {delta.value}
+            </span>
+          )}
+          {hero && note && (
+            <span className="kpi-note" style={{ marginTop: 0 }}>
+              {note}
+            </span>
+          )}
+        </div>
+        {!hero && note && <div className="kpi-note">{note}</div>}
+      </div>
+      {hasSpark && (
+        <div className="kpi-spark-wrap">
+          <Sparkline
+            values={spark!}
+            area={sparkArea}
+            opacity={hero ? 1 : 0.7}
+            height={hero ? 46 : 36}
+          />
+        </div>
       )}
-      {note && <div className="kpi-note">{note}</div>}
+    </div>
+  );
+}
+
+/**
+ * Horizontal "value by campaign" bars — the dark-design replacement for the
+ * donut. Each row is a label + figure with a proportional accent bar.
+ */
+export function ValueByCampaignBars({
+  data,
+}: {
+  data: { name: string; value: number }[];
+}) {
+  const max = Math.max(...data.map((d) => d.value), 1);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+      {data.map((d) => {
+        const pct = Math.max((d.value / max) * 100, 2);
+        const isOthers = d.name.startsWith("Others");
+        return (
+          <div key={d.name}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: 12,
+                marginBottom: 5,
+              }}
+            >
+              <span style={{ color: isOthers ? "var(--ink-secondary)" : "var(--ink)" }}>
+                {d.name}
+              </span>
+              <span className="tnum" style={{ color: "var(--ink-secondary)" }}>
+                {money(d.value)}
+              </span>
+            </div>
+            <div
+              style={{
+                height: 6,
+                borderRadius: 3,
+                background: "rgba(255,255,255,0.05)",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${pct}%`,
+                  borderRadius: 3,
+                  background: isOthers
+                    ? "var(--line2)"
+                    : "linear-gradient(90deg, var(--ac), var(--ac2))",
+                }}
+              />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

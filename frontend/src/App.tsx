@@ -158,27 +158,33 @@ export default function App() {
     baseData.trend[baseData.trend.length - 1]?.date ??
     range.to;
 
+  const live = viewData.source === "live";
+  const syncedAt = new Date(viewData.updatedAt).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const statusText = updating
+    ? "UPDATING…"
+    : live
+    ? `LIVE · SYNCED ${syncedAt}`
+    : `DEMO · ${syncedAt}`;
+
   return (
     <div className="shell">
-      <div className="mesh" />
       <header className="topbar">
         <div className="brand">
           <div className="brand-mark">K</div>
           <div className="brand-name">
-            Kepler Club <span>· PPC Command Center</span>
+            Kepler Club <span>PPC Command Center</span>
           </div>
         </div>
-        <span className="source-chip">
-          <span className={`dot ${viewData.source === "live" ? "live" : "demo"}`} />
-          {updating
-            ? "Updating…"
-            : `${viewData.source === "live" ? "Live data" : "Demo data"} · updated ${new Date(
-                viewData.updatedAt
-              ).toLocaleTimeString("en-GB", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}`}
-        </span>
+        <div className="topbar-right">
+          <span className="source-chip">
+            <span className={`dot ${live ? "live" : "demo"}`} />
+            {statusText}
+          </span>
+          <div className="topbar-avatar">KC</div>
+        </div>
       </header>
 
       <nav className="tabs">

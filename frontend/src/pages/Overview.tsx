@@ -7,6 +7,7 @@ import {
   KpiCard,
   PLATFORM_META,
   SeverityPill,
+  ValueByCampaignBars,
   convValue,
   kpiDelta,
   money,
@@ -17,7 +18,6 @@ import {
   NetRevenueChart,
   ConversionTrendChart,
   CtrImpressionsChart,
-  ConvValuePie,
 } from "../components/TrendChart";
 
 type Granularity = "daily" | "weekly" | "monthly";
@@ -160,35 +160,43 @@ export function Overview({
     return others > 0 ? [...top, { name: "Others", value: others }] : top;
   })();
 
+  // KPI sparklines — full daily series (independent of the chart filters)
+  const convSpark = data.trend.map((p) => convValue(p.spend, p.roas, p.revenue));
+  const roasSpark = data.trend.map((p) => p.roas);
+  const convsSpark = data.trend.map((p) => p.conversions);
+  const cpaSpark = data.trend.map((p) =>
+    p.conversions > 0 ? p.spend / p.conversions : 0
+  );
+
   return (
     <>
-      <div className="kpi-grid">
+      <div className="kpi-grid hero-row">
         <KpiCard
           hero
-          label="Blended ROAS"
-          value={`${k.roas.toFixed(2)}x`}
-          delta={kpiDelta(k.roas, prev?.roas, "up")}
-          note={`Industry median ~${INDUSTRY_BENCHMARKS.blended.roas}x · ${BENCHMARKS_AS_OF}`}
-        />
-        <KpiCard
-          label="Total Spend"
-          value={money(k.spend)}
-          delta={kpiDelta(k.spend, prev?.spend, "neutral")}
-        />
-        <KpiCard
           label="Conversion Value"
           value={money(convNow)}
           delta={kpiDelta(convNow, convPrev, "up")}
+          note={`vs prev period · ${money(k.spend)} spend`}
+          spark={convSpark}
+          sparkArea
+        />
+        <KpiCard
+          label="Blended ROAS"
+          value={`${k.roas.toFixed(2)}x`}
+          delta={kpiDelta(k.roas, prev?.roas, "up")}
+          spark={roasSpark}
         />
         <KpiCard
           label="Conversions"
           value={num(k.conversions)}
           delta={kpiDelta(k.conversions, prev?.conversions, "up")}
+          spark={convsSpark}
         />
         <KpiCard
           label="Blended CPA"
           value={money(k.cpa)}
           delta={kpiDelta(k.cpa, prev?.cpa, "down")}
+          spark={cpaSpark}
         />
       </div>
 
@@ -298,26 +306,32 @@ export function Overview({
       </div>
 
       <div ref={chartsRef}>
-        {/* 3-chart grid */}
-        <div className="section section-grid" style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
-          <Card title="Net Revenue vs Conv. Value" sub={`${granularityLabel} · TRY`}>
+        {/* Main row: conversion value & net revenue + value by campaign */}
+        <div
+          className="section section-grid charts-main"
+          style={{ gridTemplateColumns: "1.7fr 1fr" }}
+        >
+          <Card title="Conversion value & net revenue" sub={`${granularityLabel} · TRY`}>
             <NetRevenueChart data={activeTrend} />
           </Card>
-          <Card title="Conversions" sub={`${granularityLabel} count`}>
-            <ConversionTrendChart data={activeTrend} />
-          </Card>
-          <Card title="CTR & Impressions" sub="CTR % (right) · Impressions (left)">
-            <CtrImpressionsChart data={activeTrend} />
+          <Card
+            title="Value by campaign"
+            sub={`TOP ${Math.min(convPieData.length, 7)} · TRY`}
+          >
+            <ValueByCampaignBars data={convPieData} />
           </Card>
         </div>
 
-        {/* Conversion value share by campaign */}
-        <div className="section">
-          <Card
-            title="Conversion value by campaign"
-            sub={`${convPieData.length} segments · selected period · TRY`}
-          >
-            <ConvValuePie data={convPieData} />
+        {/* Secondary row: conversions + CTR & impressions */}
+        <div
+          className="section section-grid charts-sec"
+          style={{ gridTemplateColumns: "1fr 1fr" }}
+        >
+          <Card title="Conversions" sub={`${granularityLabel} count`}>
+            <ConversionTrendChart data={activeTrend} />
+          </Card>
+          <Card title="CTR & impressions" sub="CTR % (right) · Impressions (left)">
+            <CtrImpressionsChart data={activeTrend} />
           </Card>
         </div>
       </div>

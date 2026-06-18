@@ -120,10 +120,10 @@ export function MicrosoftLogo({ size = 20 }: { size?: number }) {
 export function OverviewLogo({ size = 20 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
-      <rect x="3" y="3" width="8" height="8" rx="2" fill="#4d5fd9" />
-      <rect x="13" y="3" width="8" height="5" rx="2" fill="#94a3b8" />
-      <rect x="13" y="10" width="8" height="11" rx="2" fill="#221c4e" />
-      <rect x="3" y="13" width="8" height="8" rx="2" fill="#94a3b8" />
+      <rect x="3" y="3" width="8" height="8" rx="2" fill="#6e80ff" />
+      <rect x="13" y="3" width="8" height="5" rx="2" fill="#5e6373" />
+      <rect x="13" y="10" width="8" height="11" rx="2" fill="#8fa0ff" />
+      <rect x="3" y="13" width="8" height="8" rx="2" fill="#5e6373" />
     </svg>
   );
 }

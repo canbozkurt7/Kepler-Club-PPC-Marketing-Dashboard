@@ -1,8 +1,8 @@
 import { toPng, toJpeg } from "html-to-image";
 import { jsPDF } from "jspdf";
 
-// White background so exported charts read well outside the dark shell.
-const BG = "#ffffff";
+// Dark page background to match the command-center shell behind the cards.
+const BG = "#0a0b0f";
 const OPTS = { backgroundColor: BG, pixelRatio: 2, cacheBust: true };
 
 function triggerDownload(dataUrl: string, filename: string) {
