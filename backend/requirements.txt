@@ -16,3 +16,4 @@ aiohttp==3.9.1
 email-validator==2.1.0
 google-analytics-data==0.18.3
 google-auth==2.27.0
+zeep==4.2.1

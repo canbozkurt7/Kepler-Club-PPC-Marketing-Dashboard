@@ -31,6 +31,13 @@ class DataNormalizer:
             "conversions": "conversions",
             "conversion_value": None,  # Yandex doesn't provide this
         },
+        "microsoft": {
+            "impressions": "impressions",
+            "clicks": "clicks",
+            "spend": "spend",  # In USD, will convert
+            "conversions": "conversions",
+            "conversion_value": "conversion_value",  # In USD, will convert
+        },
     }
 
     def __init__(self):
@@ -96,6 +103,8 @@ class DataNormalizer:
                 return spend * self.usd_to_eur  # USD → EUR fallback
         elif platform == "yandex":
             return spend * self.rub_to_try  # RUB → TRY
+        elif platform == "microsoft":
+            return spend * self.usd_to_eur  # USD → EUR fallback
         else:
             return spend
 
@@ -115,5 +124,7 @@ class DataNormalizer:
                 return value * self.usd_to_eur
         elif platform == "yandex":
             return 0.0  # Yandex doesn't provide conversion value
+        elif platform == "microsoft":
+            return value * self.usd_to_eur  # USD → EUR fallback
         else:
             return value
